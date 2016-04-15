@@ -1,0 +1,13 @@
+[ui]
+username = David Winter <i@djw.me>
+editor = vim
+
+[extensions]
+color =
+pager =
+graphlog = 
+progress = 
+churn = 
+
+[pager]
+pager = LESS='FrSXQ' less
