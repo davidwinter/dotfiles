@@ -23,8 +23,13 @@ prepend_to_path "/usr/local/php5/bin"
 prepend_to_path "/usr/local/bin"
 prepend_to_path "/usr/local/sbin"
 
-rbenv rehash >/dev/null ^&1
-jenv rehah 2>/dev/null
+if which rbenv > /dev/null
+	rbenv rehash >/dev/null ^&1
+end
+
+if which jenv > /dev/null
+	jenv rehash 2>/dev/null
+end
 
 set BROWSER open
 
@@ -38,7 +43,9 @@ set -g -x NODE_PATH '/usr/local/lib/node_modules'
 set -g -x fish_greeting ''
 set -x NVM_DIR ~/.nvm
 
-source ~/.config/fish/nvm-wrapper/nvm.fish
+if test -f ~/.config/fish/nvm-wrapper/nvm.fish
+	source ~/.config/fish/nvm-wrapper/nvm.fish
+end
 
 function git_prompt
   if git root >/dev/null 2>&1
