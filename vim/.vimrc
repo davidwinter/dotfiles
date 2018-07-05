@@ -1,6 +1,12 @@
 " Disable vi compatibility so we can use cool vim stuff:
 set nocompatible
 
+" Enable mouse
+set mouse=a
+
+" Allow backspace
+set backspace=indent,eol,start
+
 " Line numbers (left hand side)  and position (bottom right):
 set ruler
 set number
