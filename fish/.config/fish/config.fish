@@ -93,3 +93,6 @@ end
 function dcb; docker-compose build; end
 
 function mole; sshuttle -l 0.0.0.0 --dns -r mole 0/0; end
+
+status --is-interactive; and which pyenv > /dev/null; and source (pyenv init -|psub)
+status --is-interactive; and which pyenv > /dev/null; and source (pyenv virtualenv-init -|psub)
