@@ -1,6 +1,7 @@
 set -gx PATH /usr/local/bin $PATH
 set -gx PATH /usr/local/sbin $PATH
 set -gx PATH /usr/local/go/bin $PATH
+set -gx PATH $HOME/.cargo/bin $PATH
 set -gx PATH $HOME/Dropbox/bin $PATH
 set -gx PATH $HOME/.rbenv/shims $PATH
 
