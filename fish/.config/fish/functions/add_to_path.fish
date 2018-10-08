@@ -1,5 +1,5 @@
 function add_to_path
-  if test -d $1
-    set -gx PATH $1 $PATH
+  if test -d $argv
+    set -gx PATH $argv $PATH
   end
 end
