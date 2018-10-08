@@ -1,9 +1,9 @@
-set -gx PATH /usr/local/bin $PATH
-set -gx PATH /usr/local/sbin $PATH
-set -gx PATH /usr/local/go/bin $PATH
-set -gx PATH $HOME/.cargo/bin $PATH
-set -gx PATH $HOME/Dropbox/bin $PATH
-set -gx PATH $HOME/.rbenv/shims $PATH
+add_to_path  /usr/local/bin
+add_to_path  /usr/local/sbin
+add_to_path /usr/local/go/bin
+add_to_path  $HOME/.cargo/bin
+add_to_path  $HOME/Dropbox/bin
+add_to_path  $HOME/.rbenv/shims
 
 set -gx BROWSER open
 set -gx EDITOR vim
