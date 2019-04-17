@@ -1,7 +1,7 @@
 [user]
   name = David Winter
   email = i@djw.me
-  signingkey = 1E3A043EC8424634
+  signingkey = 0194134D61D5C337
 [color]
    diff = auto
    status = auto
