@@ -31,3 +31,7 @@ end
 if which pyenv > /dev/null
 	status --is-interactive; and source (pyenv init -|psub)
 end
+
+if which direnv > /dev/null
+	direnv hook fish | source
+end
