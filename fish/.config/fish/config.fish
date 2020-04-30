@@ -7,6 +7,7 @@ add_to_path $HOME/Dropbox/bin
 add_to_path $HOME/.rbenv/bin
 add_to_path $HOME/.rbenv/shims
 add_to_path $HOME/bin
+add_to_path $HOME/.local/bin
 
 set -gx BROWSER open
 set -gx EDITOR vim
