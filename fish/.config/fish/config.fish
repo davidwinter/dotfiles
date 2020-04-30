@@ -17,7 +17,7 @@ set -gx fish_greeting ''
 set -gx NVM_DIR ~/.nvm
 
 if which rbenv > /dev/null
-	rbenv rehash >/dev/null ^&1
+	rbenv init - | source
 end
 
 if which jenv > /dev/null
