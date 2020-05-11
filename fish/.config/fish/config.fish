@@ -41,6 +41,6 @@ if which direnv > /dev/null
 	direnv hook fish | source
 end
 
-if which brew > /dev/null and test -d (brew --prefix asdf)
+if which brew > /dev/null; and test -d (brew --prefix asdf)
     source (brew --prefix asdf)/asdf.fish
 end
