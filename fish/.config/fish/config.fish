@@ -44,3 +44,8 @@ end
 if which brew > /dev/null; and test -d (brew --prefix asdf)
     source (brew --prefix asdf)/asdf.fish
 end
+
+if test -f ~/.asdf/asdf.fish
+	source ~/.asdf/asdf.fish
+end
+
