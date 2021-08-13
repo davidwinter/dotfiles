@@ -8,6 +8,7 @@ add_to_path $HOME/.rbenv/bin
 add_to_path $HOME/.rbenv/shims
 add_to_path $HOME/bin
 add_to_path $HOME/.local/bin
+add_to_path $HOME/.deno/bin
 
 set -gx BROWSER open
 set -gx EDITOR vim
@@ -48,4 +49,3 @@ end
 if test -f ~/.asdf/asdf.fish
 	source ~/.asdf/asdf.fish
 end
-
