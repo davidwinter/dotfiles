@@ -4,7 +4,6 @@ function fish_prompt
     set_color normal
 
   git_prompt
-  hg_prompt
 
   echo ' >: '
 end
