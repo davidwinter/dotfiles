@@ -15,10 +15,12 @@ set -gx GOPATH $HOME/go
 set -gx NODE_PATH /usr/local/lib/node_modules
 set -gx fish_greeting ''
 
-if which brew > /dev/null; and test -d (brew --prefix asdf)
-    source (brew --prefix asdf)/asdf.fish
+# Linux
+if test -f ~/.asdf/asdf.fish
+    source ~/.asdf/asdf.fish
 end
 
+# macOS
 if which brew > /dev/null; and test -f (brew --prefix asdf)/libexec/asdf.fish
 	source (brew --prefix asdf)/libexec/asdf.fish
 end
