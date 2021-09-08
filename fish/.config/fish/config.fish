@@ -19,6 +19,6 @@ if which brew > /dev/null; and test -d (brew --prefix asdf)
     source (brew --prefix asdf)/asdf.fish
 end
 
-if test -f ~/.asdf/asdf.fish
-	source ~/.asdf/asdf.fish
+if which brew > /dev/null; and test -f (brew --prefix asdf)/libexec/asdf.fish
+	source (brew --prefix asdf)/libexec/asdf.fish
 end
