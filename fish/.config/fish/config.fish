@@ -3,6 +3,11 @@ add_to_path /usr/local/sbin
 add_to_path /usr/local/go/bin
 add_to_path /snap/bin
 add_to_path /opt/homebrew/bin
+
+if which python3 > /dev/null
+    add_to_path (python3 -m site --user-base)/bin
+end
+
 add_to_path $HOME/.cargo/bin
 add_to_path $HOME/Dropbox/bin
 add_to_path $HOME/bin
