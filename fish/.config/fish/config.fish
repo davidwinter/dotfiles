@@ -13,6 +13,7 @@ add_to_path $HOME/Dropbox/bin
 add_to_path $HOME/bin
 add_to_path $HOME/.local/bin
 add_to_path $HOME/.deno/bin
+add_to_path $HOME/.tfenv/bin
 
 set -gx BROWSER open
 set -gx EDITOR vim
