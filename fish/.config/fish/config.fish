@@ -22,6 +22,8 @@ set -gx GOPATH $HOME/go
 set -gx NODE_PATH /usr/local/lib/node_modules
 set -gx fish_greeting ''
 
+alias g=git
+
 # Linux
 if test -f ~/.asdf/asdf.fish
     source ~/.asdf/asdf.fish
