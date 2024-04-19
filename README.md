@@ -1,17 +1,13 @@
 # dotfiles
 
-Ensure that `stow` is installed:
+Ensure that `chezmoi` is installed:
 
-  brew install stow
+```sh
+brew install chezmoi
+```
 
-Clone the directory to `~/dotfiles` and then `cd` into it.
+To setup, run:
 
-Then run `stow` on whichever configs you want to setup.
-
-For example:
-
-  stow vim
-
-The symlinks will be setup for you in your home directory.
-
-Thanks to [Brandon Invergo](http://brandon.invergo.net/news/2012-05-26-using-gnu-stow-to-manage-your-dotfiles.html) for the idea.
+```sh
+chezmoi init --apply git@github.com:davidwinter/dotfiles.git
+```
