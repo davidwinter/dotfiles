@@ -1,0 +1,26 @@
+[user]
+  name = David Winter
+  email = i@djw.me
+  signingkey = 3AB5D447C087FB4DD80E3FA40194134D61D5C337
+[core]
+  editor = vim
+[alias]
+  st = status
+  ci = commit
+  br = branch
+  co = checkout
+  in = log ..@{u}
+  out = log @{u}..
+[push]
+  autoSetupRemote = true
+  followtags = true
+[pull]
+  rebase = true
+[rebase]
+  autostash = true
+[commit]
+  gpgsign = true
+[tag]
+  gpgsign=true
+[init]
+  defaultBranch = main

@@ -15,6 +15,7 @@ add_to_path $HOME/.local/bin
 add_to_path $HOME/.deno/bin
 add_to_path $HOME/.tfenv/bin
 
+set -gx LC_ALL en_GB.UTF-8
 set -gx BROWSER open
 set -gx EDITOR vim
 
@@ -23,6 +24,7 @@ set -gx NODE_PATH /usr/local/lib/node_modules
 set -gx fish_greeting ''
 
 alias g=git
+alias tailscale=/Applications/Tailscale.app/Contents/MacOS/Tailscale
 
 # Linux
 if test -f ~/.asdf/asdf.fish
