@@ -1,19 +1,19 @@
-add_to_path /usr/local/bin
-add_to_path /usr/local/sbin
-add_to_path /usr/local/go/bin
-add_to_path /snap/bin
-add_to_path /opt/homebrew/bin
+fish_add_path /usr/local/bin
+fish_add_path /usr/local/sbin
+fish_add_path /usr/local/go/bin
+fish_add_path /snap/bin
+fish_add_path /opt/homebrew/bin
 
 if which python3 > /dev/null
-    add_to_path (python3 -m site --user-base)/bin
+    fish_add_path (python3 -m site --user-base)/bin
 end
 
-add_to_path $HOME/.cargo/bin
-add_to_path $HOME/Dropbox/bin
-add_to_path $HOME/bin
-add_to_path $HOME/.local/bin
-add_to_path $HOME/.deno/bin
-add_to_path $HOME/.tfenv/bin
+fish_add_path $HOME/.cargo/bin
+fish_add_path $HOME/Dropbox/bin
+fish_add_path $HOME/bin
+fish_add_path $HOME/.local/bin
+fish_add_path $HOME/.deno/bin
+fish_add_path $HOME/.tfenv/bin
 
 set -gx LC_ALL en_GB.UTF-8
 set -gx BROWSER open
