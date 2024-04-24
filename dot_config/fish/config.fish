@@ -15,6 +15,9 @@ fish_add_path $HOME/.local/bin
 fish_add_path $HOME/.deno/bin
 fish_add_path $HOME/.tfenv/bin
 
+# https://github.com/fish-shell/fish-shell/issues/6643
+set -gx GPG_TTY (tty)
+
 set -gx LC_ALL en_GB.UTF-8
 set -gx BROWSER open
 set -gx EDITOR vim
