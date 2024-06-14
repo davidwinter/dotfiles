@@ -34,7 +34,6 @@ if test -f ~/.asdf/asdf.fish
     source ~/.asdf/asdf.fish
 end
 
-# macOS
-if which brew > /dev/null; and test -f (brew --prefix asdf)/libexec/asdf.fish
-	source (brew --prefix asdf)/libexec/asdf.fish
-end
+# proto
+set -gx PROTO_HOME "$HOME/.proto"
+set -gx PATH "$PROTO_HOME/shims:$PROTO_HOME/bin" $PATH
