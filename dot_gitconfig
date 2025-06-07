@@ -1,7 +1,15 @@
 [user]
   name = David Winter
   email = i@djw.me
-  signingkey = 3AB5D447C087FB4DD80E3FA40194134D61D5C337
+  signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHRx3xQQg/2JYnCvvxSSNsKcvefeCAkPd4QRO3UURjJ4
+[gpg]
+  format = ssh
+[gpg "ssh"]
+  program = "/usr/local/bin/op-ssh-sign"
+[commit]
+  gpgsign = true
+[tag]
+  gpgsign = true
 [core]
   editor = vim
 [alias]
@@ -18,9 +26,5 @@
   rebase = true
 [rebase]
   autostash = true
-[commit]
-  gpgsign = true
-[tag]
-  gpgsign=true
 [init]
   defaultBranch = main
