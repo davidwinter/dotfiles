@@ -154,6 +154,7 @@ ensure_fish_is_default_shell() {
 ensure_installed git && echo "✅ git is installed"
 ensure_installed stow && echo "✅ stow is installed"
 ensure_installed fish && echo "✅ fish is installed"
+ensure_installed starship && echo "✅ starship is installed"
 
 ensure_1password_agent "$AGENT_SOCKET" && echo "✅ 1Password agent socket OK"
 
@@ -163,3 +164,6 @@ clone_repo && echo "✅ dotfiles repository available at $DEST"
 
 ensure_fish_in_etc_shells && echo "✅ fish is listed in /etc/shells"
 ensure_fish_is_default_shell && echo "✅ fish is your default login shell"
+stow ssh && echo "✅ ssh config enabled"
+stow git && echo "✅ git config enabled"
+stow fish && echo "✅ fish config enabled"
