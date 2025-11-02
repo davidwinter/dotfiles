@@ -2,11 +2,13 @@
 
 ## Dependencies
 
+Ensure 1Password is installed.
+
 ### macOS
 
 ```sh
 ln -s /Applications/1Password.app/Contents/MacOS/op-ssh-sign /usr/local/bin/op-ssh-sign
-brew install chezmoi
+brew install stow
 brew install fish
 which fish | sudo tee -a /etc/shells
 chsh -s "$(which fish)" # then logout and back in again after this
@@ -16,10 +18,10 @@ chsh -s "$(which fish)" # then logout and back in again after this
 
 ```sh
 ln -s /opt/1Password/op-ssh-sign /usr/local/bin/op-ssh-sign
-sudo snap install chezmoi --classic
 sudo apt update
+sudo apt install stow
 sudo apt install fish
-chsh -s /usr/bin/fish # then logout and back in again after this
+chsh -s "$(which fish)" # then logout and back in again after this
 ```
 
 ## Setup
@@ -27,13 +29,8 @@ chsh -s /usr/bin/fish # then logout and back in again after this
 To setup, run:
 
 ```sh
-chezmoi init --apply git@github.com:davidwinter/dotfiles.git
-```
-
-To edit files:
-
-```sh
-chezmoi cd
-nano file.txt
-chezmoi apply
+cd
+git clone git@github.com:davidwinter/dotfiles.git
+cd dotfiles
+./bootstrap.sh
 ```
