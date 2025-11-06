@@ -5,6 +5,13 @@ if test (uname) = Darwin
     source ~/.orbstack/shell/init.fish 2>/dev/null; or true
 end
 
+if test -d /opt/homebrew
+    set -gx HOMEBREW_PREFIX /opt/homebrew
+    set -gx HOMEBREW_CELLAR /opt/homebrew/Cellar
+    set -gx HOMEBREW_REPOSITORY /opt/homebrew
+    set -gx PATH /opt/homebrew/bin /opt/homebrew/sbin $PATH
+end
+
 set -gx fish_greeting ''
 
 if test -S ~/.1password/agent.sock
