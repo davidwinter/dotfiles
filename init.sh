@@ -155,6 +155,8 @@ ensure_installed git && echo "✅ git is installed"
 ensure_installed stow && echo "✅ stow is installed"
 ensure_installed fish && echo "✅ fish is installed"
 ensure_installed starship && echo "✅ starship is installed"
+ensure_installed lazygit && echo "lazygit is installed"
+ensure_installed lazydocker && echo "lazydocker is installed"
 
 ensure_1password_agent "$AGENT_SOCKET" && echo "✅ 1Password agent socket OK"
 
