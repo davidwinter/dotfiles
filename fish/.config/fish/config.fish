@@ -12,6 +12,10 @@ if test -d /opt/homebrew
     set -gx PATH /opt/homebrew/bin /opt/homebrew/sbin $PATH
 end
 
+if command -v mise &>/dev/null
+    mise activate fish | source
+end
+
 set -gx fish_greeting ''
 
 if test -S ~/.1password/agent.sock
