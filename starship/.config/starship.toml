@@ -33,3 +33,5 @@ deleted    = ""
 
 [hostname]
 ssh_only = true
+format = "[$hostname]($style) "
+style = "bold dimmed"
