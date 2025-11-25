@@ -1,0 +1,4 @@
+window-padding-x = 15
+window-padding-y = 15
+macos-titlebar-proxy-icon = hidden
+title = " "
