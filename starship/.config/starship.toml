@@ -30,3 +30,6 @@ stashed    = ""
 staged     = ""
 renamed    = ""
 deleted    = ""
+
+[hostname]
+ssh_only = true
