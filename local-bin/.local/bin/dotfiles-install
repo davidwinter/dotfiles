@@ -171,6 +171,7 @@ clone_repo && echo "✅ dotfiles repository available at $DEST"
 
 ensure_fish_in_etc_shells && echo "✅ fish is listed in /etc/shells"
 ensure_fish_is_default_shell && echo "✅ fish is your default login shell"
+stow local-bin && echo "✅ local-bin config enabled"
 stow ssh && echo "✅ ssh config enabled"
 stow git && echo "✅ git config enabled"
 stow fish && echo "✅ fish config enabled"

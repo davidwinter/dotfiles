@@ -1,5 +1,7 @@
 alias g=git
 
+fish_add_path ~/.local/bin
+
 # orbstack
 if test (uname) = Darwin
     source ~/.orbstack/shell/init.fish 2>/dev/null; or true
