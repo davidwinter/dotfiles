@@ -7,6 +7,10 @@ DEST="$HOME/dotfiles"
 AGENT_SOCKET="$HOME/.1password/agent.sock"
 OP_SSH_SIGN_DEST="/usr/local/bin/op-ssh-sign"
 
+is_macos() {
+    [ "$(uname -s)" = "Darwin" ]
+}
+
 ensure_installed() {
     local cmd="$1"
     local pkg="${2:-$1}"
@@ -172,4 +176,4 @@ stow git && echo "✅ git config enabled"
 stow fish && echo "✅ fish config enabled"
 stow starship && echo "✅ starship config enabled"
 stow hushlogin && echo "✅ hushlogin config enabled"
-stow ghostty && echo "✅ ghostty config enabled"
+is_macos && stow ghostty-macOS && echo "✅ ghostty-macOS config enabled"
