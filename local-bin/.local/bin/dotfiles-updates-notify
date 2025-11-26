@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles-updates-last-check"
+TODAY=$(date +%Y-%m-%d)
+
+mkdir -p "$(dirname "$CACHE_FILE")"
+
+if [ -f "$CACHE_FILE" ]; then
+    LAST_CHECK=$(cat "$CACHE_FILE")
+else
+    LAST_CHECK=""
+fi
+
+if [ "$LAST_CHECK" != "$TODAY" ]; then
+    dotfiles-check-updates
+    echo "$TODAY" > "$CACHE_FILE"
+fi

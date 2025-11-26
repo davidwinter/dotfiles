@@ -18,6 +18,10 @@ if command -v mise &>/dev/null
     mise activate fish | source
 end
 
+if command -v dotfiles-updates-notify &>/dev/null
+    dotfiles-updates-notify
+end
+
 set -gx fish_greeting ''
 
 if test -S ~/.1password/agent.sock
