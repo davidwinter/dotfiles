@@ -155,6 +155,11 @@ ensure_fish_is_default_shell() {
     exit 1
 }
 
+stow_package() {
+    local package="$1"
+    stow --dir="$DEST" --target="$HOME" "$package" && echo "✅ $package config enabled"
+}
+
 ensure_installed git && echo "✅ git is installed"
 ensure_installed stow && echo "✅ stow is installed"
 ensure_installed fish && echo "✅ fish is installed"
@@ -171,10 +176,11 @@ clone_repo && echo "✅ dotfiles repository available at $DEST"
 
 ensure_fish_in_etc_shells && echo "✅ fish is listed in /etc/shells"
 ensure_fish_is_default_shell && echo "✅ fish is your default login shell"
-stow local-bin && echo "✅ local-bin config enabled"
-stow ssh && echo "✅ ssh config enabled"
-stow git && echo "✅ git config enabled"
-stow fish && echo "✅ fish config enabled"
-stow starship && echo "✅ starship config enabled"
-stow hushlogin && echo "✅ hushlogin config enabled"
-is_macos && stow ghostty-macOS && echo "✅ ghostty-macOS config enabled"
+
+stow_package local-bin
+stow_package ssh
+stow_package git
+stow_package fish
+stow_package starship
+stow_package hushlogin
+is_macos && stow_package ghostty-macOS
