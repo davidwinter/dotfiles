@@ -117,42 +117,44 @@ stow_package() {
 }
 
 echo
-echo "Packages:"
+echo "📦 Packages:"
 echo
 
 PACKAGES=(git stow fish starship lazygit lazydocker mise)
 
 for pkg in "${PACKAGES[@]}"; do
-    ensure_installed "$pkg" && echo "✅ $pkg is installed"
+    ensure_installed "$pkg" && echo "   ✅ $pkg is installed"
 done
 
 echo
-echo "1Password:"
+echo "🔑 1Password:"
 echo
 
-ensure_1password_agent "$OP_AGENT_SOCKET_PATH" && echo "✅ 1Password agent socket OK"
-ensure_1password_ssh_sign "$OP_SSH_SIGN_PATH" && echo "✅ 1Password op-ssh-sign helper available at $OP_SSH_SIGN_PATH"
+ensure_1password_agent "$OP_AGENT_SOCKET_PATH" && echo "   ✅ 1Password agent socket OK"
+ensure_1password_ssh_sign "$OP_SSH_SIGN_PATH" && echo "   ✅ 1Password op-ssh-sign helper available at $OP_SSH_SIGN_PATH"
 
 echo
-echo "Dotfiles repo:"
+echo "🔨 Dotfiles repo:"
 echo
 
-clone_repo && echo "✅ dotfiles repository available at $DOTFILES_DIR"
+clone_repo && echo "   ✅ dotfiles repository available at $DOTFILES_DIR"
 
 echo
-echo "Dotfile configs:"
+echo "📃 Dotfile configs:"
 echo
 
 STOW_PACKAGES=(local-bin ssh git fish starship hushlogin)
 for pkg in "${STOW_PACKAGES[@]}"; do
-    (stow_package "$pkg" && echo "✅ $pkg config enabled") || echo "    $pkg config failed"
+    (stow_package "$pkg" && echo "   ✅ $pkg config enabled") || echo "   ❌ $pkg config failed"
 done
 
-is_macos && stow_package ghostty-macOS && echo "✅ ghostty-macOS config enabled"
+is_macos && stow_package ghostty-macOS && echo "   ✅ ghostty-macOS config enabled"
 
 echo
-echo "Fish shell:"
+echo "🐟 Fish shell:"
 echo
 
-ensure_fish_in_etc_shells && echo "✅ fish is listed in /etc/shells"
-(ensure_fish_is_default_shell && echo "✅ fish is your default login shell") || echo "  Run the following to change shell:    chsh -s \"$fish_path\""
+ensure_fish_in_etc_shells && echo "   ✅ fish is listed in /etc/shells"
+(ensure_fish_is_default_shell && echo "   ✅ fish is your default login shell") || echo "   ❌ Run the following to change shell:    chsh -s \"$fish_path\""
+
+echo
