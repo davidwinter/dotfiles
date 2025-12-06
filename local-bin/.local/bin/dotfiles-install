@@ -44,7 +44,6 @@ ensure_installed() {
     fi
 }
 
-
 ensure_1password_agent() {
     local socket="${1:-$OP_AGENT_SOCKET_PATH}"
 
@@ -90,8 +89,6 @@ clone_repo() {
 
     SSH_AUTH_SOCK="$agent_socket" git clone "git@github.com:$repo.git" "$dest"
 }
-
-
 
 ensure_fish_in_etc_shells() {
     local fish_path="${1:-$(command -v fish 2>/dev/null || true)}"
@@ -143,19 +140,19 @@ echo
 clone_repo && echo "✅ dotfiles repository available at $DOTFILES_DIR"
 
 echo
-echo "Fish shell:"
-echo
-
-ensure_fish_in_etc_shells && echo "✅ fish is listed in /etc/shells"
-ensure_fish_is_default_shell && echo "✅ fish is your default login shell"
-
-echo
 echo "Dotfile configs:"
 echo
 
 STOW_PACKAGES=(local-bin ssh git fish starship hushlogin)
 for pkg in "${STOW_PACKAGES[@]}"; do
-    stow_package "$pkg" && echo "✅ $pkg config enabled"
+    (stow_package "$pkg" && echo "✅ $pkg config enabled") || echo "    $pkg config failed"
 done
 
 is_macos && stow_package ghostty-macOS && echo "✅ ghostty-macOS config enabled"
+
+echo
+echo "Fish shell:"
+echo
+
+ensure_fish_in_etc_shells && echo "✅ fish is listed in /etc/shells"
+(ensure_fish_is_default_shell && echo "✅ fish is your default login shell") || echo "  Run the following to change shell:    chsh -s \"$fish_path\""
