@@ -15,6 +15,19 @@ fi
 
 cd "$DOTFILES_DIR" || exit 0
 
+# Check for uncommitted changes (modified, added, deleted files)
+if ! git diff-index --quiet HEAD --; then
+    echo "⚠ Uncommitted changes found in dotfiles:"
+    git diff-index --name-status HEAD -- | sed 's/^/  /'
+fi
+
+# Check for untracked files
+UNTRACKED=$(git ls-files --others --exclude-standard)
+if [ -n "$UNTRACKED" ]; then
+    echo "⚠ Untracked files found in dotfiles:"
+    echo "$UNTRACKED" | sed 's/^/  /'
+fi
+
 git fetch origin "$BRANCH" 2>/dev/null
 
 LOCAL=$(git rev-parse @)
