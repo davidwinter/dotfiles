@@ -1,0 +1,9 @@
+[core]
+  sshCommand = ssh.exe
+
+[user]
+  # Override signing key for WSL if different from main config
+  # signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIYourWSLKeyHere
+
+[gpg "ssh"]
+  program = "/mnt/c/Users/DavidWinter/AppData/Local/1Password/app/8/op-ssh-sign-wsl"

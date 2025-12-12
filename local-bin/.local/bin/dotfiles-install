@@ -197,6 +197,7 @@ for pkg in "${STOW_PACKAGES[@]}"; do
 done
 
 is_macos && stow_package ghostty-macOS && echo "   ✅ ghostty-macOS config enabled"
+is_wsl && stow_package git-wsl && echo "   ✅ git-wsl config enabled"
 
 echo
 echo "🐟 Fish shell:"
