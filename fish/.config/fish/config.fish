@@ -28,4 +28,9 @@ if test -S ~/.1password/agent.sock
     set -gx SSH_AUTH_SOCK ~/.1password/agent.sock
 end
 
+if grep -qi microsoft /proc/version
+    alias ssh=ssh.exe
+    alias ssh-add=ssh-add.exe
+end
+
 starship init fish | source
