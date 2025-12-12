@@ -171,12 +171,11 @@ echo
 echo "🔑 1Password:"
 echo
 
-if is_wsl; then
-    echo "   ⚠️  1Password is not supported on WSL"
-else
+if ! is_wsl; then
     ensure_1password_agent "$OP_AGENT_SOCKET_PATH" && echo "   ✅ 1Password agent socket OK"
-    ensure_1password_ssh_sign "$OP_SSH_SIGN_PATH" && echo "   ✅ 1Password op-ssh-sign helper available at $OP_SSH_SIGN_PATH"
 fi
+
+ensure_1password_ssh_sign "$OP_SSH_SIGN_PATH" && echo "   ✅ 1Password op-ssh-sign helper available at $OP_SSH_SIGN_PATH"
 
 echo
 echo "🔨 Dotfiles repo:"
