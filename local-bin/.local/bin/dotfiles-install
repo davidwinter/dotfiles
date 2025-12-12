@@ -23,6 +23,10 @@ is_archlinux() {
     [ "$LINUX_DISTRO" = "arch" ]
 }
 
+is_wsl() {
+    [ -f /proc/version ] && grep -qi microsoft /proc/version
+}
+
 LINUX_DISTRO=$((is_linux && source /etc/os-release && echo "$ID") || true)
 
 has() {
@@ -163,8 +167,12 @@ echo
 echo "🔑 1Password:"
 echo
 
-ensure_1password_agent "$OP_AGENT_SOCKET_PATH" && echo "   ✅ 1Password agent socket OK"
-ensure_1password_ssh_sign "$OP_SSH_SIGN_PATH" && echo "   ✅ 1Password op-ssh-sign helper available at $OP_SSH_SIGN_PATH"
+if is_wsl; then
+    echo "   ⚠️  1Password is not supported on WSL"
+else
+    ensure_1password_agent "$OP_AGENT_SOCKET_PATH" && echo "   ✅ 1Password agent socket OK"
+    ensure_1password_ssh_sign "$OP_SSH_SIGN_PATH" && echo "   ✅ 1Password op-ssh-sign helper available at $OP_SSH_SIGN_PATH"
+fi
 
 echo
 echo "🔨 Dotfiles repo:"
