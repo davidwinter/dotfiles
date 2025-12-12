@@ -24,7 +24,7 @@ is_archlinux() {
 }
 
 is_wsl() {
-    [ -f /proc/version ] && grep -qi microsoft /proc/version
+    grep -qi microsoft /proc/version 2>/dev/null
 }
 
 LINUX_DISTRO=$((is_linux && source /etc/os-release && echo "$ID") || true)
@@ -121,7 +121,11 @@ clone_repo() {
 
     mkdir -p "$(dirname "$dest")"
 
-    SSH_AUTH_SOCK="$agent_socket" git clone "git@github.com:$repo.git" "$dest"
+    if is_wsl; then
+        GIT_SSH_COMMAND="ssh.exe" git clone "git@github.com:$repo.git" "$dest"
+    else
+        SSH_AUTH_SOCK="$agent_socket" git clone "git@github.com:$repo.git" "$dest"
+    fi
 }
 
 ensure_fish_in_etc_shells() {
