@@ -102,7 +102,11 @@ ensure_1password_ssh_sign() {
     fi
 
     if is_linux; then
-        sudo ln -s "/opt/1Password/op-ssh-sign" "$target"
+        if is_wsl; then
+            sudo ln -s "/mnt/c/Users/DavidWinter/AppData/Local/1Password/app/8/op-ssh-sign-wsl" "$target"
+        else
+            sudo ln -s "/opt/1Password/op-ssh-sign" "$target"
+        fi
     fi
 }
 
