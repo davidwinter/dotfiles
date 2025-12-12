@@ -25,21 +25,45 @@ is_archlinux() {
 
 LINUX_DISTRO=$((is_linux && source /etc/os-release && echo "$ID") || true)
 
+has() {
+  command -v "$1" 1>/dev/null 2>&1
+}
+
+elevate_priv() {
+    if ! has sudo; then
+        echo "sudo not found" >&2
+        exit 1
+    fi
+
+    if ! sudo -v; then
+        echo "Superuser not granted, aborting installation" >&2
+        exit 1
+    fi
+}
+
 ensure_installed() {
     local cmd="$1"
     local pkg="${2:-$1}"
 
-    if command -v "$cmd" >/dev/null 2>&1; then
+    if has "$cmd"; then
         return 0
     fi
 
     if is_macos; then
-        brew install "$pkg"
+        if ! brew install "$pkg"; then
+            return 1
+        fi
     elif is_linux; then
+        elevate_priv
+
         if is_ubuntu; then
-            sudo apt update && sudo apt install -y "$pkg"
+            if ! sudo apt update || ! sudo apt install -y "$pkg"; then
+                return 1
+            fi
         elif is_archlinux; then
-            sudo pacman -Syu "$pkg"
+            if ! sudo pacman -Syu "$pkg"; then
+                return 1
+            fi
         fi
     fi
 }
@@ -66,6 +90,8 @@ ensure_1password_ssh_sign() {
     if [ -x "$target" ]; then
         return 0
     fi
+
+    elevate_priv
 
     if is_macos; then
         sudo ln -s "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" "$target"
@@ -97,6 +123,8 @@ ensure_fish_in_etc_shells() {
         return 0
     fi
 
+    elevate_priv
+
     printf '%s\n' "$fish_path" | sudo tee -a /etc/shells
 }
 
@@ -123,7 +151,12 @@ echo
 PACKAGES=(git stow fish starship lazygit lazydocker mise)
 
 for pkg in "${PACKAGES[@]}"; do
-    ensure_installed "$pkg" && echo "   ✅ $pkg is installed"
+    if ensure_installed "$pkg"; then
+        echo "   ✅ $pkg is installed"
+    else
+        echo "   ⚠️  Failed to install $pkg - please install it manually" >&2
+        exit 1
+    fi
 done
 
 echo
