@@ -103,7 +103,8 @@ ensure_1password_ssh_sign() {
 
     if is_linux; then
         if is_wsl; then
-            sudo ln -s "/mnt/c/Users/DavidWinter/AppData/Local/1Password/app/8/op-ssh-sign-wsl" "$target"
+            local win_home=$(wslpath "$(cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')")
+            sudo ln -s "$win_home/AppData/Local/1Password/app/8/op-ssh-sign-wsl" "$target"
         else
             sudo ln -s "/opt/1Password/op-ssh-sign" "$target"
         fi
