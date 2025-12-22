@@ -28,7 +28,10 @@ if [ -n "$UNTRACKED" ]; then
     echo "$UNTRACKED" | sed 's/^/  /'
 fi
 
-git fetch origin "$BRANCH" 2>/dev/null
+if ! git fetch origin "$BRANCH" 2>/dev/null; then
+    echo "Error: Unable to fetch from remote repository" >&2
+    exit 1
+fi
 
 LOCAL=$(git rev-parse @)
 REMOTE=$(git rev-parse @{u} 2>/dev/null)

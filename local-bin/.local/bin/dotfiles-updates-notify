@@ -12,6 +12,5 @@ else
 fi
 
 if [ "$LAST_CHECK" != "$TODAY" ]; then
-    dotfiles-check-updates
-    echo "$TODAY" > "$CACHE_FILE"
+    dotfiles-check-updates && echo "$TODAY" > "$CACHE_FILE"
 fi
