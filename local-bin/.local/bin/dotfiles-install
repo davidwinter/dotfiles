@@ -192,11 +192,12 @@ echo
 echo "📃 Dotfile configs:"
 echo
 
-STOW_PACKAGES=(local-bin ssh git fish starship hushlogin omarchy)
+STOW_PACKAGES=(local-bin ssh git fish starship hushlogin)
 for pkg in "${STOW_PACKAGES[@]}"; do
     (stow_package "$pkg" && echo "   ✅ $pkg config enabled") || echo "   ❌ $pkg config failed"
 done
 
+is_archlinux && stow_package omarchy && echo "   ✅ omarchy config enabled"
 is_macos && stow_package ghostty-macOS && echo "   ✅ ghostty-macOS config enabled"
 is_wsl && stow_package git-wsl && echo "   ✅ git-wsl config enabled"
 
