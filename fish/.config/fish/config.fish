@@ -31,6 +31,6 @@ end
 
 starship init fish | source
 
-if command -v dotfiles-updates-notify &>/dev/null
-    dotfiles-updates-notify
+if status is-interactive; and command -v dotfiles-updates-notify &>/dev/null
+   dotfiles-updates-notify
 end
