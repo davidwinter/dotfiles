@@ -30,7 +30,7 @@ is_wsl() {
 LINUX_DISTRO=$((is_linux && source /etc/os-release && echo "$ID") || true)
 
 has() {
-  command -v "$1" 1>/dev/null 2>&1
+  command -v "$@" 1>/dev/null 2>&1
 }
 
 elevate_priv() {
@@ -46,28 +46,27 @@ elevate_priv() {
 }
 
 ensure_installed() {
-    local cmd="$1"
-    local pkg="${2:-$1}"
-
-    if has "$cmd"; then
-        return 0
-    fi
-
     if is_macos; then
-        if ! brew install "$pkg"; then
-            return 1
+        if brew list "$@" &>/dev/null; then
+            return 0
         fi
+
+        brew install "$@"
     elif is_linux; then
         elevate_priv
 
         if is_ubuntu; then
-            if ! sudo apt update || ! sudo apt install -y "$pkg"; then
-                return 1
+            if apt list --installed "$@" &>/dev/null; then
+                return 0
             fi
+
+            sudo apt update || ! sudo apt install -y "$@"
         elif is_archlinux; then
-            if ! sudo pacman -Syu "$pkg"; then
-                return 1
+            if pacman -Q "$@" &>/dev/null; then
+                return 0
             fi
+
+            sudo pacman -Syu "$@"
         fi
     fi
 }
@@ -161,7 +160,7 @@ echo
 echo "📦 Packages:"
 echo
 
-PACKAGES=(git stow fish starship lazygit lazydocker mise)
+PACKAGES=(git stow fish starship lazygit lazydocker mise eza)
 
 for pkg in "${PACKAGES[@]}"; do
     if ensure_installed "$pkg"; then
@@ -171,6 +170,9 @@ for pkg in "${PACKAGES[@]}"; do
         exit 1
     fi
 done
+
+is_macos && ensure_installed --cask font-jetbrains-mono-nerd-font && echo "   ✅ JetBrains Mono Nerd Font installed"
+is_archlinux && ensure_installed ttf-jetbrains-mono-nerd && echo "   ✅ JetBrains Mono Nerd Font installed"
 
 echo
 echo "🔑 1Password:"
