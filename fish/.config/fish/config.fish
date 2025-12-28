@@ -20,9 +20,9 @@ end
 
 set -gx fish_greeting ''
 
-if test -z $SSH_TTY; and test -S ~/.1password/agent.sock
-    set -gx SSH_AUTH_SOCK ~/.1password/agent.sock
-end
+# if test -z $SSH_TTY; and test -S ~/.1password/agent.sock
+#     set -gx SSH_AUTH_SOCK ~/.1password/agent.sock
+# end
 
 if test -r /proc/version; and grep -qi microsoft /proc/version
     alias ssh=ssh.exe
