@@ -47,7 +47,7 @@ elevate_priv() {
 
 ensure_installed() {
     if is_macos; then
-        if brew list "$@" &>/dev/null; then
+        if brew list "$@" &>/dev/null || has "$@"; then
             return 0
         fi
 
@@ -56,13 +56,13 @@ ensure_installed() {
         elevate_priv
 
         if is_ubuntu; then
-            if apt list --installed "$@" &>/dev/null; then
+            if dpkg -s "$@" &>/dev/null || has "$@"; then
                 return 0
             fi
 
-            sudo apt update || ! sudo apt install -y "$@"
+            sudo apt update && sudo apt install -y "$@"
         elif is_archlinux; then
-            if pacman -Q "$@" &>/dev/null; then
+            if pacman -Q "$@" &>/dev/null || has "$@"; then
                 return 0
             fi
 
