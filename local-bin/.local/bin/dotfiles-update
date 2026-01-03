@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-DOTFILES_DIR="$HOME/dotfiles"
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 
-cd "$DOTFILES_DIR" || exit 1
+cd "$DOTFILES_DIR"
 git pull
