@@ -16,6 +16,41 @@
 
 ## Architecture & Design Philosophy
 
+### Architecture Overview
+
+```
+User runs one-liner (curl | bash)
+    ↓
+bootstrap (minimal script)
+    ├─ Checks: git installed
+    ├─ Clones: repo via HTTPS
+    ├─ Sets: PATH to include helper scripts
+    └─ Executes: dotfiles-install
+        ↓
+dotfiles-install (main installer)
+    ├─ Uses: helper scripts for all OS detection
+    ├─ Installs: packages (brew/apt/pacman)
+    ├─ Sets up: 1Password SSH agent + signing
+    ├─ Switches: git remote HTTPS → SSH
+    ├─ Stows: config packages (symlinks)
+    └─ Configures: Fish as default shell
+        ↓
+Helper Scripts (composable utilities)
+    ├─ dotfiles-is-macos
+    ├─ dotfiles-is-linux
+    ├─ dotfiles-is-wsl
+    ├─ dotfiles-is-ubuntu
+    ├─ dotfiles-is-archlinux
+    ├─ dotfiles-has-command
+    └─ dotfiles-detect-linux-distro
+        ↓
+Used by:
+    ├─ Installer scripts
+    ├─ Update scripts
+    ├─ Fish config
+    └─ User's own scripts
+```
+
 ### Core Principles
 - **Simplicity over features** - Prefer straightforward solutions over complex abstractions
 - **Explicit over implicit** - Configuration should be obvious and traceable
@@ -94,32 +129,41 @@ dotfiles/
 **`bootstrap`**
 - Minimal entry point for one-liner installation
 - Accepts optional repository argument (defaults to davidwinter/dotfiles)
-- Clones repository via HTTPS to ~/dotfiles
-- Adds helper scripts to PATH
+- Clones repository via HTTPS to ~/dotfiles (no authentication required)
+- Adds helper scripts to PATH temporarily
 - Executes dotfiles-install
 - No user-specific information hardcoded
+- Only prerequisite: git (curl already succeeded if bootstrap is running)
 
 **`dotfiles-install`**
 - Main installer script, bootstraps entire system
+- Uses helper scripts exclusively (no inline functions)
 - Detects OS and installs appropriate packages
 - Sets up 1Password SSH agent integration
+- Switches git remote from HTTPS to SSH for authenticated push/pull
 - Stows config packages (creates symlinks)
 - Makes Fish the default shell
-- Uses helper scripts for OS detection and logic
+- Idempotent - safe to run multiple times
 
 **`dotfiles-update`**
 - Simple git pull to update dotfiles repo
-- Should be enhanced to handle new packages/configs
+- Uses consistent bash style with set -euo pipefail
 
 **`dotfiles-check-updates`**
 - Checks for uncommitted local changes
+- Checks for untracked files
 - Fetches remote and compares with local
 - Reports number of commits behind
+- No longer hardcodes branch - uses current tracking branch
 
 **`dotfiles-updates-notify`**
 - Runs once per day on shell startup
 - Caches last check date
 - Provides non-intrusive update notifications
+
+**Helper Scripts** (see Helper Scripts section below)
+- Small, composable utilities for OS detection and common tasks
+- Used by installer, Fish config, and available for user scripts
 
 ### Configuration Files
 
@@ -422,23 +466,26 @@ ensure_installed() function handles:
 
 1. User runs one-liner: `curl https://raw.githubusercontent.com/USER/dotfiles/main/bootstrap | bash`
 2. Bootstrap script downloads and executes
-3. Checks for git and curl (only prerequisites)
-4. Clones dotfiles repository to ~/dotfiles via HTTPS
+3. Checks for git (only prerequisite - curl already succeeded)
+4. Clones dotfiles repository to ~/dotfiles via HTTPS (no authentication needed)
 5. Adds ~/dotfiles/local-bin/.local/bin to PATH
 6. Executes dotfiles-install from cloned repository
-7. Installer detects OS and distribution (using helper scripts)
-8. Install required packages via appropriate package manager
-9. Set up 1Password agent socket and op-ssh-sign symlinks
-10. Stow each config package (creates symlinks)
-11. Add fish to /etc/shells and set as default
-12. Display success messages with status indicators
+7. Installer ensures helper scripts are in PATH
+8. Detects OS and distribution using helper scripts (dotfiles-is-macos, dotfiles-is-linux, etc.)
+9. Installs required packages via appropriate package manager
+10. Sets up 1Password agent socket and op-ssh-sign symlinks
+11. Switches git remote from HTTPS to SSH (for authenticated operations)
+12. Stows each config package (creates symlinks to ~/)
+13. Adds fish to /etc/shells and sets as default shell
+14. Displays success messages with status indicators
 
 ## Update Flow
 
 1. User runs `dotfiles-update` or notified by `dotfiles-updates-notify`
-2. Script runs git pull in ~/dotfiles
-3. Changes are immediately active (symlinks point to updated files)
-4. **Note**: New packages or stow packages require manual intervention, or to re-run `dotfiles-install` to ensure new packages and stow configs are applied
+2. `dotfiles-check-updates` runs once per day on interactive shell startup
+3. Script runs git pull in ~/dotfiles (via SSH after initial setup)
+4. Changes are immediately active (symlinks point to updated files)
+5. **Note**: New packages or stow packages require re-running `dotfiles-install`
 
 ## Philosophy on Configuration
 
@@ -448,3 +495,14 @@ ensure_installed() function handles:
 - **Composable over monolithic** - Small tools that do one thing well
 - **Safe over fast** - Rather fail early than silently corrupt
 - **Convention over configuration** - Sensible defaults, minimal choices
+
+## Current Architecture
+
+### Key Features
+- ✅ Bootstrap script for one-liner installation
+- ✅ Helper scripts for reusable OS detection and common tasks
+- ✅ Main installer uses helper scripts (no inline functions)
+- ✅ All scripts use consistent bash style (set -euo pipefail, [[, ==)
+- ✅ Fish config uses helper scripts (no duplication)
+- ✅ Git remote automatically switches from HTTPS to SSH
+- ✅ Zero code duplication across bash scripts and Fish config

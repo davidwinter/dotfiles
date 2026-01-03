@@ -33,11 +33,28 @@ The dotfiles system uses 1Password for SSH key management and git commit signing
 
 ## What It Does
 
-1. Clones your dotfiles to `~/dotfiles`
+1. Clones your dotfiles to `~/dotfiles` (via HTTPS)
 2. Installs required packages (stow, fish, starship, mise, eza, lazygit, lazydocker)
 3. Sets up 1Password SSH agent integration
-4. Symlinks configuration files using GNU Stow
-5. Makes Fish your default shell
+4. Switches git remote from HTTPS to SSH (for authenticated push/pull)
+5. Symlinks configuration files using GNU Stow
+6. Makes Fish your default shell
+
+## Helper Scripts
+
+The dotfiles include helper scripts for common tasks:
+
+- `dotfiles-update` - Pull latest changes from git
+- `dotfiles-check-updates` - Check for updates without applying
+- `dotfiles-is-macos` - Check if running on macOS
+- `dotfiles-is-linux` - Check if running on Linux
+- `dotfiles-is-wsl` - Check if running on WSL
+- `dotfiles-is-ubuntu` - Check if running on Ubuntu
+- `dotfiles-is-archlinux` - Check if running on Arch Linux
+- `dotfiles-has-command` - Check if a command exists
+- `dotfiles-detect-linux-distro` - Output the Linux distribution name
+
+These helper scripts are available in your PATH after installation and are used throughout the dotfiles for consistent OS detection and logic.
 
 ## Updating
 
