@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+if [[ $# -eq 0 ]]; then
+    echo "Usage: dotfiles-has-command <command>" >&2
+    exit 2
+fi
+
+command -v "$1" >/dev/null 2>&1

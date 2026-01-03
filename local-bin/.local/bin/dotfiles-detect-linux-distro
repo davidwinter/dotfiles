@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+if ! dotfiles-is-linux; then
+    exit 1
+fi
+
+if [[ ! -f /etc/os-release ]]; then
+    exit 1
+fi
+
+source /etc/os-release
+echo "$ID"

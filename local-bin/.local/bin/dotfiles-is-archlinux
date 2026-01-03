@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+[[ "$(dotfiles-detect-linux-distro)" == "arch" ]]
