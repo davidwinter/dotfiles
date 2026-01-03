@@ -2,8 +2,7 @@ alias g=git
 
 fish_add_path ~/.local/bin
 
-# orbstack
-if test (uname) = Darwin
+if dotfiles-is-macos
     source ~/.orbstack/shell/init.fish 2>/dev/null; or true
 end
 
@@ -14,23 +13,19 @@ if test -d /opt/homebrew
     set -gx PATH /opt/homebrew/bin /opt/homebrew/sbin $PATH
 end
 
-if command -v mise &>/dev/null
+if dotfiles-has-command mise
     mise activate fish | source
 end
 
 set -gx fish_greeting ''
 
-# if test -z $SSH_TTY; and test -S ~/.1password/agent.sock
-#     set -gx SSH_AUTH_SOCK ~/.1password/agent.sock
-# end
-
-if test -r /proc/version; and grep -qi microsoft /proc/version
+if dotfiles-is-wsl
     alias ssh=ssh.exe
     alias ssh-add=ssh-add.exe
 end
 
 starship init fish | source
 
-if status is-interactive; and command -v dotfiles-updates-notify &>/dev/null
+if status is-interactive; and dotfiles-has-command dotfiles-updates-notify
     dotfiles-updates-notify
 end
