@@ -48,6 +48,7 @@
 
 ```
 dotfiles/
+├── bootstrap             # Minimal bootstrap script (entry point for one-liner install)
 ├── fish/                 # Fish shell configuration (stow package)
 │   └── .config/fish/config.fish
 ├── git/                  # Git configuration (stow package)
@@ -76,6 +77,7 @@ dotfiles/
 ├── hushlogin/            # Suppress login messages (stow package)
 ├── omarchy/              # Arch Linux specific configs (stow package)
 ├── ghostty-macOS/        # Ghostty terminal config for macOS (stow package)
+├── AI.md                 # AI context documentation
 └── README.md
 ```
 
@@ -89,12 +91,21 @@ dotfiles/
 
 ### Installation & Management Scripts
 
+**`bootstrap`**
+- Minimal entry point for one-liner installation
+- Accepts optional repository argument (defaults to davidwinter/dotfiles)
+- Clones repository via HTTPS to ~/dotfiles
+- Adds helper scripts to PATH
+- Executes dotfiles-install
+- No user-specific information hardcoded
+
 **`dotfiles-install`**
 - Main installer script, bootstraps entire system
 - Detects OS and installs appropriate packages
 - Sets up 1Password SSH agent integration
-- Clones dotfiles repo and stows configs
+- Stows config packages (creates symlinks)
 - Makes Fish the default shell
+- Uses helper scripts for OS detection and logic
 
 **`dotfiles-update`**
 - Simple git pull to update dotfiles repo
@@ -409,15 +420,18 @@ ensure_installed() function handles:
 
 ## Installation Flow
 
-1. User runs one-liner: `curl ... | bash`
-2. Script downloads dotfiles-install and executes
-3. Detect OS and distribution
-4. Install required packages via appropriate package manager
-5. Set up 1Password agent socket and op-ssh-sign symlinks
-6. Clone dotfiles repository to ~/dotfiles
-7. Stow each config package (creates symlinks)
-8. Add fish to /etc/shells and set as default
-9. Display success messages with status indicators
+1. User runs one-liner: `curl https://raw.githubusercontent.com/USER/dotfiles/main/bootstrap | bash`
+2. Bootstrap script downloads and executes
+3. Checks for git and curl (only prerequisites)
+4. Clones dotfiles repository to ~/dotfiles via HTTPS
+5. Adds ~/dotfiles/local-bin/.local/bin to PATH
+6. Executes dotfiles-install from cloned repository
+7. Installer detects OS and distribution (using helper scripts)
+8. Install required packages via appropriate package manager
+9. Set up 1Password agent socket and op-ssh-sign symlinks
+10. Stow each config package (creates symlinks)
+11. Add fish to /etc/shells and set as default
+12. Display success messages with status indicators
 
 ## Update Flow
 

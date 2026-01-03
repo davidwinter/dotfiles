@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOTFILES_REPO="${1:-davidwinter/dotfiles}"
+DOTFILES_DIR="$HOME/dotfiles"
+
+echo "🎯 Dotfiles Bootstrap"
+echo "   Repository: $DOTFILES_REPO"
+echo "   Target: $DOTFILES_DIR"
+echo
+
+if ! command -v git >/dev/null 2>&1; then
+    echo "❌ git not found. Please install git first." >&2
+    echo "   macOS: xcode-select --install" >&2
+    echo "   Ubuntu/Debian: sudo apt install git" >&2
+    echo "   Arch: sudo pacman -S git" >&2
+    exit 1
+fi
+
+if [[ -d "$DOTFILES_DIR" ]]; then
+    echo "✅ Dotfiles repository already exists at $DOTFILES_DIR"
+else
+    echo "📦 Cloning dotfiles repository..."
+    if ! git clone "https://github.com/$DOTFILES_REPO.git" "$DOTFILES_DIR"; then
+        echo "❌ Failed to clone repository" >&2
+        exit 1
+    fi
+    echo "✅ Repository cloned successfully"
+fi
+
+echo
+echo "🚀 Starting installation..."
+echo
+
+export PATH="$DOTFILES_DIR/local-bin/.local/bin:$PATH"
+exec dotfiles-install

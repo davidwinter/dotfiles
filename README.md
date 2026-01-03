@@ -2,13 +2,59 @@
 
 ## Dependencies
 
-- 1Password
+- git
 - curl
+- 1Password (recommended, setup instructions below)
 
-## Setup
+## Quick Start
 
-1. Ensure 1Password is installed.
-2. In 1Password, Settings, Developer, ensure that "Use the SSH Agent" is enabled
-3. Opt into displaying key names if prompted
-4. When prompted, do not update the local `~/.ssh/config` file
-5. Run: `curl -fsSL https://raw.githubusercontent.com/davidwinter/dotfiles/main/local-bin/.local/bin/dotfiles-install | bash`
+```bash
+curl -fsSL https://raw.githubusercontent.com/davidwinter/dotfiles/main/bootstrap | bash
+```
+
+Or with a custom repository:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/davidwinter/dotfiles/main/bootstrap | bash -s -- youruser/dotfiles
+```
+
+## 1Password Setup
+
+The dotfiles system uses 1Password for SSH key management and git commit signing.
+
+1. Install 1Password
+2. Open 1Password Settings → Developer
+3. Enable "Use the SSH Agent"
+4. Opt into displaying key names if prompted
+5. When prompted, do not update the local `~/.ssh/config` file (dotfiles handles this)
+
+## What It Does
+
+1. Clones your dotfiles to `~/dotfiles`
+2. Installs required packages (stow, fish, starship, mise, eza, lazygit, lazydocker)
+3. Sets up 1Password SSH agent integration
+4. Symlinks configuration files using GNU Stow
+5. Makes Fish your default shell
+
+## Updating
+
+The dotfiles will check for updates once per day when you start a new shell.
+
+To manually update:
+
+```bash
+dotfiles-update
+```
+
+To check for updates without applying:
+
+```bash
+dotfiles-check-updates
+```
+
+## Supported Platforms
+
+- macOS (Apple Silicon & Intel)
+- Ubuntu Linux
+- Arch Linux
+- Windows Subsystem for Linux (WSL2)
