@@ -29,7 +29,8 @@ run_migration() {
     local file="$1"
     local filename=$(basename "$file")
 
-    echo -e "\n\e[32mRunning migration: ${filename%.sh}\e[0m"
+    echo
+    echo "Running migration: ${filename%.sh}"
 
     local output
     local exit_code=0
@@ -43,7 +44,7 @@ run_migration() {
         return 0
     else
         echo "❌ Migration failed with exit code: $exit_code"
-        [[ -n "$output" ]] && echo -e "\nOutput:\n$output"
+        [[ -n "$output" ]] && echo && echo "Output:" && echo "$output"
         return 1
     fi
 }
@@ -61,11 +62,13 @@ for file in "$MIGRATIONS_DIR"/*.sh; do
                 touch "$STATE_DIR/skipped/$filename"
                 echo "⏭️  Migration skipped"
             else
-                echo -e "\n❌ Stopping due to migration failure"
+                echo
+                echo "❌ Stopping due to migration failure"
                 exit 1
             fi
         fi
     fi
 done
 
-echo -e "\n✅ All migrations complete"
+echo
+echo "✅ All migrations complete"
