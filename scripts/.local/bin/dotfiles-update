@@ -16,12 +16,12 @@ fi
 
 echo
 
-if dotfiles-run-migrations; then
+if dotfiles-migrate; then
     echo
     echo "✅ Dotfiles updated successfully"
 else
     echo "❌ Migrations failed" >&2
     echo "   Your dotfiles are updated but migrations didn't complete" >&2
-    echo "   Please fix the issue and run: dotfiles-run-migrations" >&2
+    echo "   Please fix the issue and run: dotfiles-migrate" >&2
     exit 1
 fi
