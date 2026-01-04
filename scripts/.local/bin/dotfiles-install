@@ -8,150 +8,29 @@ OP_SSH_SIGN_PATH="/usr/local/bin/op-ssh-sign"
 
 # Ensure helper scripts are in PATH (in case run directly, not from bootstrap)
 if ! dotfiles-has-command dotfiles-has-command 2>/dev/null; then
-    export PATH="$DOTFILES_DIR/local-bin/.local/bin:$PATH"
+    export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
 fi
 
-elevate_priv() {
-    if ! dotfiles-has-command sudo; then
-        echo "sudo not found" >&2
-        exit 1
-    fi
-
-    if ! sudo -v; then
-        echo "Superuser not granted, aborting installation" >&2
-        exit 1
-    fi
-}
-
-ensure_installed() {
-    if dotfiles-is-macos; then
-        if brew list "$@" &>/dev/null || dotfiles-has-command "$@"; then
-            return 0
-        fi
-
-        brew install "$@"
-    elif dotfiles-is-linux; then
-        elevate_priv
-
-        if dotfiles-is-ubuntu; then
-            if dpkg -s "$@" &>/dev/null || dotfiles-has-command "$@"; then
-                return 0
-            fi
-
-            sudo apt update && sudo apt install -y "$@"
-        elif dotfiles-is-archlinux; then
-            if pacman -Q "$@" &>/dev/null || dotfiles-has-command "$@"; then
-                return 0
-            fi
-
-            sudo pacman -Syu "$@"
-        fi
-    fi
-}
-
-ensure_1password_agent() {
-    local socket="${1:-$OP_AGENT_SOCKET_PATH}"
-
-    if [[ -S "$socket" ]]; then
-        return 0
-    fi
-
-    if dotfiles-is-macos; then
-        ln -s "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" "$socket"
-        return 0
-    fi
-
-    echo "Ensure the 1Password agent is running and the socket exists at $socket (or create an appropriate symlink)."
-    exit 1
-}
-
-ensure_1password_ssh_sign() {
-    local target="${1:-$OP_SSH_SIGN_PATH}"
-
-    if [[ -x "$target" ]]; then
-        return 0
-    fi
-
-    elevate_priv
-
-    if dotfiles-is-macos; then
-        sudo ln -s "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" "$target"
-    fi
-
-    if dotfiles-is-linux; then
-        if dotfiles-is-wsl; then
-            local win_home=$(wslpath "$(cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')")
-            sudo ln -s "$win_home/AppData/Local/1Password/app/8/op-ssh-sign-wsl" "$target"
-        else
-            sudo ln -s "/opt/1Password/op-ssh-sign" "$target"
-        fi
-    fi
-}
-
-ensure_git_remote_ssh() {
-    cd "$DOTFILES_DIR"
-
-    local current_remote=$(git remote get-url origin)
-
-    if [[ "$current_remote" =~ ^git@github\.com: ]]; then
-        echo "   ✅ Git remote already uses SSH"
-        return 0
-    fi
-
-    if [[ "$current_remote" =~ ^https://github\.com/(.+)$ ]]; then
-        local repo="${BASH_REMATCH[1]}"
-        repo="${repo%.git}"
-        local ssh_url="git@github.com:${repo}.git"
-
-        git remote set-url origin "$ssh_url"
-        echo "   ✅ Switched git remote from HTTPS to SSH"
-    fi
-}
-
-ensure_fish_in_etc_shells() {
-    local fish_path="${1:-$(command -v fish 2>/dev/null || true)}"
-
-    if grep -Fxq "$fish_path" /etc/shells; then
-        return 0
-    fi
-
-    elevate_priv
-
-    printf '%s\n' "$fish_path" | sudo tee -a /etc/shells
-}
-
-ensure_fish_is_default_shell() {
-    local fish_path="${1:-$(command -v fish 2>/dev/null || true)}"
-    local current_shell="${SHELL:-$(getent passwd "$(whoami)" 2>/dev/null | cut -d: -f7 || true)}"
-
-    if [[ "$current_shell" == "$fish_path" ]]; then
-        return 0
-    fi
-
-    chsh -s "$fish_path"
-}
-
-stow_package() {
-    local package="$1"
-    stow --dir="$DOTFILES_DIR/configs" --target="$HOME" "$package"
-}
-
-stow_scripts() {
-    stow --dir="$DOTFILES_DIR" --target="$HOME" scripts
-}
+# Source shared library
+source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
 
 mark_migrations_as_applied() {
     local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/migrations"
+
+    # Only mark migrations on fresh install (state directory doesn't exist yet)
+    if [[ -d "$state_dir" ]]; then
+        echo "   ℹ️  Skipping (existing installation)"
+        return 0
+    fi
+
     mkdir -p "$state_dir"
 
     if [[ -d "$DOTFILES_DIR/migrations" ]]; then
         for migration in "$DOTFILES_DIR/migrations"/*.sh; do
             [[ -f "$migration" ]] || continue
             local migration_file=$(basename "$migration")
-            if [[ ! -f "$state_dir/$migration_file" ]]; then
-                touch "$state_dir/$migration_file"
-                echo "   ✅ Marked $migration_file as applied"
-            fi
+            touch "$state_dir/$migration_file"
+            echo "   ✅ Marked $migration_file as applied"
         done
     fi
 }
@@ -163,7 +42,7 @@ echo
 PACKAGES=(git stow fish starship lazygit lazydocker mise eza)
 
 for pkg in "${PACKAGES[@]}"; do
-    if ensure_installed "$pkg"; then
+    if ensure_package_installed "$pkg"; then
         echo "   ✅ $pkg is installed"
     else
         echo "   ⚠️  Failed to install $pkg - please install it manually" >&2
@@ -171,8 +50,8 @@ for pkg in "${PACKAGES[@]}"; do
     fi
 done
 
-dotfiles-is-macos && ensure_installed --cask font-jetbrains-mono-nerd-font && echo "   ✅ JetBrains Mono Nerd Font installed"
-dotfiles-is-archlinux && ensure_installed ttf-jetbrains-mono-nerd && echo "   ✅ JetBrains Mono Nerd Font installed"
+dotfiles-is-macos && ensure_package_installed font-jetbrains-mono-nerd-font && echo "   ✅ JetBrains Mono Nerd Font installed"
+dotfiles-is-archlinux && ensure_package_installed ttf-jetbrains-mono-nerd && echo "   ✅ JetBrains Mono Nerd Font installed"
 
 echo
 echo "🔑 1Password:"
@@ -188,23 +67,24 @@ echo
 echo "🔐 Git Remote:"
 echo
 
-ensure_git_remote_ssh
+if ensure_git_remote_ssh; then
+    echo "   ✅ Git remote configured for SSH"
+fi
 
 echo
 echo "📃 Dotfile configs:"
 echo
 
-
-(stow_scripts && echo "   ✅ scripts config enabled") || echo "   ❌ scripts config failed"
+(ensure_dotfiles_config_present "scripts" "." && echo "   ✅ scripts config enabled") || echo "   ❌ scripts config failed"
 
 STOW_PACKAGES=(ssh git fish starship hushlogin)
 for pkg in "${STOW_PACKAGES[@]}"; do
-    (stow_package "$pkg" && echo "   ✅ $pkg config enabled") || echo "   ❌ $pkg config failed"
+    (ensure_dotfiles_config_present "$pkg" && echo "   ✅ $pkg config enabled") || echo "   ❌ $pkg config failed"
 done
 
-dotfiles-is-archlinux && stow_package omarchy && echo "   ✅ omarchy config enabled"
-dotfiles-is-macos && stow_package ghostty-macOS && echo "   ✅ ghostty-macOS config enabled"
-dotfiles-is-wsl && stow_package git-wsl && echo "   ✅ git-wsl config enabled"
+dotfiles-is-archlinux && ensure_dotfiles_config_present "omarchy" && echo "   ✅ omarchy config enabled"
+dotfiles-is-macos && ensure_dotfiles_config_present "ghostty-macOS" && echo "   ✅ ghostty-macOS config enabled"
+dotfiles-is-wsl && ensure_dotfiles_config_present "git-wsl" && echo "   ✅ git-wsl config enabled"
 
 echo
 echo "🐟 Fish shell:"
