@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# Check dotfiles health and report status
+
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+
+# Ensure helper scripts are in PATH
+if ! dotfiles-has-command dotfiles-has-command 2>/dev/null; then
+    export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
+fi
+
+# Source shared library
+source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
+
+echo "🏥 Dotfiles Health Check"
+echo
+
+# Packages
+echo "📦 Packages:"
+PACKAGES=(git stow fish starship lazygit lazydocker mise eza)
+for pkg in "${PACKAGES[@]}"; do
+    if check_package_installed "$pkg"; then
+        echo "   ✅ $pkg"
+    else
+        echo "   ❌ $pkg"
+    fi
+done
+
+# Platform-specific packages
+if dotfiles-is-macos; then
+    if check_package_installed "font-jetbrains-mono-nerd-font"; then
+        echo "   ✅ JetBrains Mono Nerd Font"
+    else
+        echo "   ❌ JetBrains Mono Nerd Font"
+    fi
+fi
+
+if dotfiles-is-archlinux; then
+    if check_package_installed "ttf-jetbrains-mono-nerd"; then
+        echo "   ✅ JetBrains Mono Nerd Font"
+    else
+        echo "   ❌ JetBrains Mono Nerd Font"
+    fi
+fi
+
+# 1Password
+echo
+echo "🔑 1Password:"
+if check_1password_agent; then
+    echo "   ✅ Agent socket"
+else
+    echo "   ❌ Agent socket"
+fi
+
+if check_1password_ssh_sign; then
+    echo "   ✅ SSH sign helper"
+else
+    echo "   ❌ SSH sign helper"
+fi
+
+# Git
+echo
+echo "🔐 Git:"
+if check_git_remote_ssh; then
+    echo "   ✅ Remote uses SSH"
+else
+    echo "   ❌ Remote uses HTTPS"
+fi
+
+# Configurations
+echo
+echo "📃 Configurations:"
+
+if check_dotfiles_config_present "scripts" "."; then
+    echo "   ✅ scripts"
+else
+    echo "   ❌ scripts"
+fi
+
+CONFIG_PACKAGES=(ssh git fish starship hushlogin)
+for pkg in "${CONFIG_PACKAGES[@]}"; do
+    if check_dotfiles_config_present "$pkg"; then
+        echo "   ✅ $pkg"
+    else
+        echo "   ❌ $pkg"
+    fi
+done
+
+# Platform-specific configs
+if dotfiles-is-archlinux; then
+    if check_dotfiles_config_present "omarchy"; then
+        echo "   ✅ omarchy"
+    else
+        echo "   ❌ omarchy"
+    fi
+fi
+
+if dotfiles-is-macos; then
+    if check_dotfiles_config_present "ghostty-macOS"; then
+        echo "   ✅ ghostty-macOS"
+    else
+        echo "   ❌ ghostty-macOS"
+    fi
+fi
+
+if dotfiles-is-wsl; then
+    if check_dotfiles_config_present "git-wsl"; then
+        echo "   ✅ git-wsl"
+    else
+        echo "   ❌ git-wsl"
+    fi
+fi
+
+# Fish shell
+echo
+echo "🐟 Fish Shell:"
+if check_fish_in_etc_shells; then
+    echo "   ✅ Listed in /etc/shells"
+else
+    echo "   ❌ Not in /etc/shells"
+fi
+
+if check_fish_is_default_shell; then
+    echo "   ✅ Default shell"
+else
+    echo "   ❌ Not default shell"
+fi
+
+# Migrations
+echo
+echo "📋 Migrations:"
+if check_migrations_applied; then
+    echo "   ✅ All applied"
+else
+    echo "   ⚠️  Pending (run: dotfiles-update)"
+fi
+
+echo
+echo "💡 To fix issues, run: dotfiles-install"
