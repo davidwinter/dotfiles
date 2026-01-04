@@ -133,7 +133,27 @@ ensure_fish_is_default_shell() {
 
 stow_package() {
     local package="$1"
-    stow --dir="$DOTFILES_DIR" --target="$HOME" "$package"
+    stow --dir="$DOTFILES_DIR/configs" --target="$HOME" "$package"
+}
+
+stow_scripts() {
+    stow --dir="$DOTFILES_DIR" --target="$HOME" scripts
+}
+
+mark_migrations_as_applied() {
+    local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/migrations"
+    mkdir -p "$state_dir"
+
+    if [[ -d "$DOTFILES_DIR/migrations" ]]; then
+        for migration in "$DOTFILES_DIR/migrations"/*.sh; do
+            [[ -f "$migration" ]] || continue
+            local migration_file=$(basename "$migration")
+            if [[ ! -f "$state_dir/$migration_file" ]]; then
+                touch "$state_dir/$migration_file"
+                echo "   ✅ Marked $migration_file as applied"
+            fi
+        done
+    fi
 }
 
 echo
@@ -174,7 +194,10 @@ echo
 echo "📃 Dotfile configs:"
 echo
 
-STOW_PACKAGES=(local-bin ssh git fish starship hushlogin)
+
+(stow_scripts && echo "   ✅ scripts config enabled") || echo "   ❌ scripts config failed"
+
+STOW_PACKAGES=(ssh git fish starship hushlogin)
 for pkg in "${STOW_PACKAGES[@]}"; do
     (stow_package "$pkg" && echo "   ✅ $pkg config enabled") || echo "   ❌ $pkg config failed"
 done
@@ -194,19 +217,6 @@ echo
 echo "📋 Migrations:"
 echo
 
-# Mark all existing migrations as applied (fresh install already has new structure)
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/migrations"
-mkdir -p "$STATE_DIR"
-
-if [[ -d "$DOTFILES_DIR/migrations" ]]; then
-    for migration in "$DOTFILES_DIR/migrations"/*.sh; do
-        [[ -f "$migration" ]] || continue
-        migration_file=$(basename "$migration")
-        if [[ ! -f "$STATE_DIR/$migration_file" ]]; then
-            touch "$STATE_DIR/$migration_file"
-            echo "   ✅ Marked $migration_file as applied"
-        fi
-    done
-fi
+mark_migrations_as_applied
 
 echo
