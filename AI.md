@@ -84,41 +84,47 @@ Used by:
 ```
 dotfiles/
 ├── bootstrap             # Minimal bootstrap script (entry point for one-liner install)
-├── fish/                 # Fish shell configuration (stow package)
-│   └── .config/fish/config.fish
-├── git/                  # Git configuration (stow package)
-│   └── .gitconfig
-├── git-wsl/              # WSL-specific git overrides (stow package)
-│   └── .config/git/config-wsl
-├── ssh/                  # SSH configuration (stow package)
-│   └── .ssh/config
-├── scripts/              # Helper scripts and utilities (stow package)
-│   └── .local/bin/
-│       ├── dotfiles-install
-│       ├── dotfiles-update
-│       ├── dotfiles-check-updates
-│       ├── dotfiles-updates-notify
-│       # Migration scripts
-│       ├── dotfiles-add-migration
-│       ├── dotfiles-migrate
-│       ├── dotfiles-migrations-status
-│       # Helper scripts (composable utilities)
-│       ├── dotfiles-is-macos
-│       ├── dotfiles-is-linux
-│       ├── dotfiles-is-wsl
-│       ├── dotfiles-is-ubuntu
-│       ├── dotfiles-is-archlinux
-│       ├── dotfiles-has-command
-│       └── dotfiles-detect-linux-distro
+├── configs/              # Stow packages for user configurations
+│   ├── fish/             # Fish shell configuration
+│   │   └── .config/fish/config.fish
+│   ├── git/              # Git configuration
+│   │   └── .gitconfig
+│   ├── git-wsl/          # WSL-specific git overrides
+│   │   └── .config/git/config-wsl
+│   ├── ssh/              # SSH configuration
+│   │   └── .ssh/config
+│   ├── starship/         # Starship prompt config
+│   ├── vim/              # Vim configuration
+│   ├── nano/             # Nano configuration
+│   ├── hushlogin/        # Suppress login messages
+│   ├── omarchy/          # Arch Linux specific configs
+│   └── ghostty-macOS/    # Ghostty terminal config for macOS
+├── scripts/              # Helper scripts and utilities (stow package at root)
+│   └── .local/
+│       ├── bin/          # Executable scripts
+│       │   ├── dotfiles-install
+│       │   ├── dotfiles-update
+│       │   ├── dotfiles-check-updates
+│       │   ├── dotfiles-updates-notify
+│       │   ├── dotfiles-doctor
+│       │   # Migration scripts
+│       │   ├── dotfiles-add-migration
+│       │   ├── dotfiles-migrate
+│       │   ├── dotfiles-migrations-status
+│       │   # Helper scripts (composable utilities)
+│       │   ├── dotfiles-is-macos
+│       │   ├── dotfiles-is-linux
+│       │   ├── dotfiles-is-wsl
+│       │   ├── dotfiles-is-ubuntu
+│       │   ├── dotfiles-is-archlinux
+│       │   ├── dotfiles-has-command
+│       │   └── dotfiles-detect-linux-distro
+│       └── lib/          # Shared library code
+│           └── dotfiles-lib.sh
 ├── migrations/           # Migration scripts for structural changes
-│   ├── 1705324800.sh
+│   ├── 1767520410.sh
+│   ├── 1767523066.sh
 │   └── ...
-├── starship/             # Starship prompt config (stow package)
-├── vim/                  # Vim configuration (stow package)
-├── nano/                 # Nano configuration (stow package)
-├── hushlogin/            # Suppress login messages (stow package)
-├── omarchy/              # Arch Linux specific configs (stow package)
-├── ghostty-macOS/        # Ghostty terminal config for macOS (stow package)
 ├── AI.md                 # AI context documentation
 └── README.md
 ```
@@ -144,16 +150,18 @@ dotfiles/
 
 **`dotfiles-install`**
 - Main installer script, bootstraps entire system
-- Uses helper scripts exclusively (no inline functions)
-- Detects OS and installs appropriate packages
-- Sets up 1Password SSH agent integration
-- Switches git remote from HTTPS to SSH for authenticated push/pull
-- Stows config packages (creates symlinks)
-- Makes Fish the default shell
+- Sources shared library (dotfiles-lib.sh) for all check/ensure functions
+- Detects OS and installs appropriate packages using `ensure_package_installed`
+- Sets up 1Password SSH agent integration using `ensure_1password_agent` and `ensure_1password_ssh_sign`
+- Switches git remote from HTTPS to SSH using `ensure_git_remote_ssh`
+- Stows scripts from root and configs from configs/ directory using `ensure_dotfiles_config_present`
+- Makes Fish the default shell using `ensure_fish_in_etc_shells` and `ensure_fish_is_default_shell`
+- Marks all existing migrations as applied (only on fresh installs)
 - Idempotent - safe to run multiple times
 
 **`dotfiles-update`**
-- Simple git pull to update dotfiles repo
+- Pulls latest changes from git repository
+- Automatically runs `dotfiles-migrate` to apply pending migrations
 - Uses consistent bash style with set -euo pipefail
 
 **`dotfiles-check-updates`**
@@ -167,6 +175,20 @@ dotfiles/
 - Runs once per day on shell startup
 - Caches last check date
 - Provides non-intrusive update notifications
+
+**`dotfiles-doctor`**
+- Health check script that validates dotfiles installation
+- Sources shared library (dotfiles-lib.sh) for all check functions
+- Reports status of packages, 1Password, git config, stowed configs, fish shell, and migrations
+- Provides clear feedback on what's working and what needs attention
+- Suggests running `dotfiles-install` to fix issues
+
+**`dotfiles-lib.sh`**
+- Shared library containing all check and ensure functions
+- Not executable - sourced by `dotfiles-install` and `dotfiles-doctor`
+- Located at `scripts/.local/lib/dotfiles-lib.sh`
+- Eliminates code duplication between install and doctor scripts
+- All functions follow `check_*` and `ensure_*` naming pattern
 
 **Helper Scripts** (see Helper Scripts section below)
 - Small, composable utilities for OS detection and common tasks
@@ -271,6 +293,19 @@ set -euo pipefail  # ALWAYS use this for safety
   - `dotfiles-is-wsl` - Boolean check via exit code
   - `dotfiles-has-command git` - Takes argument, checks if command exists
   - `dotfiles-detect-linux-distro` - Outputs value to stdout
+
+### Shared Library
+- **Location**: `scripts/.local/lib/dotfiles-lib.sh`
+- **Purpose**: Shared functions for `dotfiles-install` and `dotfiles-doctor`
+- **Not executable**: Sourced by other scripts, not run directly
+- **Functions**: All follow `check_*` and `ensure_*` naming pattern
+  - `check_*` - Returns 0 if condition met, 1 if not (read-only)
+  - `ensure_*` - Applies configuration to make condition true (uses `check_*` internally)
+- **Examples**:
+  - `check_package_installed "git"` - Returns 0 if git installed
+  - `ensure_package_installed "git"` - Installs git if not present
+  - `check_dotfiles_config_present "fish"` - Returns 0 if fish config stowed
+  - `ensure_dotfiles_config_present "fish"` - Stows fish config if not present
 
 ### Helper Script Usage
 ```bash
@@ -572,9 +607,11 @@ ensure_installed() function handles:
 - WSL requires manual Windows username in path
 - No validation that 1Password is correctly configured before proceeding
 - Tied to davidwinter/dotfiles repo currently, so others can't use the same dotfiles project setup without needing to manually modify some of the dotfiles shell scripts
-- Stow packages are currently stored in the root of the project directory, rather than within a `configs` or similar directory structure (can now be changed via migration)
+- Git signing keys are hardcoded per machine (no templating system)
+- WSL username path hardcoded in 1Password setup
 - We're not using a config file to store user specific configurations, such as repo location or other user-specific settings
 - We're not using a config file to store packages that users want installed, or configurations to be handled via stow, making the concept of the project reusable by others
+- No automated testing or CI
 
 ## Common Tasks
 
@@ -709,14 +746,15 @@ ensure_installed() function handles:
 4. Clones dotfiles repository to ~/dotfiles via HTTPS (no authentication needed)
 5. Adds ~/dotfiles/scripts/.local/bin to PATH
 6. Executes dotfiles-install from cloned repository
-7. Installer ensures helper scripts are in PATH
+7. Installer sources shared library (dotfiles-lib.sh)
 8. Detects OS and distribution using helper scripts (dotfiles-is-macos, dotfiles-is-linux, etc.)
-9. Installs required packages via appropriate package manager
-10. Sets up 1Password agent socket and op-ssh-sign symlinks
-11. Switches git remote from HTTPS to SSH (for authenticated operations)
-12. Stows each config package (creates symlinks to ~/)
-13. Adds fish to /etc/shells and sets as default shell
-14. Displays success messages with status indicators
+9. Installs required packages via appropriate package manager (using `ensure_package_installed`)
+10. Sets up 1Password agent socket and op-ssh-sign symlinks (using `ensure_1password_agent` and `ensure_1password_ssh_sign`)
+11. Switches git remote from HTTPS to SSH (using `ensure_git_remote_ssh`)
+12. Stows scripts from root directory and configs from configs/ directory (using `ensure_dotfiles_config_present`)
+13. Adds fish to /etc/shells and sets as default shell (using `ensure_fish_in_etc_shells` and `ensure_fish_is_default_shell`)
+14. Marks all existing migrations as applied (only on fresh installs)
+15. Displays success messages with status indicators
 
 ## Update Flow
 
@@ -726,6 +764,20 @@ ensure_installed() function handles:
 4. Script runs `dotfiles-migrate` to apply any pending migrations
 5. Changes are immediately active (symlinks point to updated files)
 6. **Note**: New packages or stow packages require re-running `dotfiles-install`
+
+## Health Check Flow
+
+1. User runs `dotfiles-doctor`
+2. Doctor sources shared library (dotfiles-lib.sh)
+3. Runs `check_*` functions to validate:
+   - Packages installed (git, stow, fish, etc.)
+   - 1Password agent socket and SSH sign helper configured
+   - Git remote using SSH
+   - Configs stowed (scripts, fish, git, ssh, etc.)
+   - Fish shell in /etc/shells and set as default
+   - All migrations applied
+4. Reports status with ✅ for OK, ❌ for issues
+5. Suggests running `dotfiles-install` to fix any issues found
 
 ## Philosophy on Configuration
 
@@ -749,3 +801,7 @@ ensure_installed() function handles:
 - ✅ Migration system for safe structural changes over time
 - ✅ Automatic migration execution on updates
 - ✅ Interactive failure handling with skip option
+- ✅ Shared library (dotfiles-lib.sh) with check/ensure functions
+- ✅ Health check script (dotfiles-doctor) to validate installation
+- ✅ Configs organized in dedicated configs/ directory
+- ✅ Scripts organized in scripts/.local/bin and scripts/.local/lib

@@ -44,11 +44,18 @@ The dotfiles system uses 1Password for SSH key management and git commit signing
 
 The dotfiles include helper scripts for common tasks:
 
+### Management Scripts
+- `dotfiles-install` - Install and configure dotfiles
 - `dotfiles-update` - Pull latest changes from git and run migrations
 - `dotfiles-check-updates` - Check for updates without applying
+- `dotfiles-doctor` - Check dotfiles health and report any issues
+
+### Migration Scripts
 - `dotfiles-add-migration` - Create a new migration file
 - `dotfiles-migrate` - Run pending migrations
-- `dotfiles-migrations-status` - Show migration status (applied, pending, skipped)
+- `dotfiles-migrations-status` - Check if there are pending migrations
+
+### Detection Helpers
 - `dotfiles-is-macos` - Check if running on macOS
 - `dotfiles-is-linux` - Check if running on Linux
 - `dotfiles-is-wsl` - Check if running on WSL
@@ -76,6 +83,24 @@ To check for updates without applying:
 ```bash
 dotfiles-check-updates
 ```
+
+## Health Check
+
+To check if your dotfiles are configured correctly:
+
+```bash
+dotfiles-doctor
+```
+
+This will report on:
+- Installed packages
+- 1Password configuration
+- Git remote configuration
+- Stowed configurations
+- Fish shell setup
+- Migration status
+
+If issues are found, run `dotfiles-install` to fix them.
 
 ## Migrations
 
@@ -118,6 +143,7 @@ dotfiles-migrate
 - If a migration fails, you'll be prompted to skip it or stop
 - Skipped migrations are tracked separately and won't run again
 - Migration state is stored in `~/.local/state/dotfiles/migrations/`
+- On fresh installs, all existing migrations are automatically marked as applied
 
 ## Supported Platforms
 
