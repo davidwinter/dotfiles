@@ -98,6 +98,10 @@ dotfiles/
 │       ├── dotfiles-update
 │       ├── dotfiles-check-updates
 │       ├── dotfiles-updates-notify
+│       # Migration scripts
+│       ├── dotfiles-add-migration
+│       ├── dotfiles-run-migrations
+│       ├── dotfiles-migrations-status
 │       # Helper scripts (composable utilities)
 │       ├── dotfiles-is-macos
 │       ├── dotfiles-is-linux
@@ -106,6 +110,9 @@ dotfiles/
 │       ├── dotfiles-is-archlinux
 │       ├── dotfiles-has-command
 │       └── dotfiles-detect-linux-distro
+├── migrations/           # Migration scripts for structural changes
+│   ├── 1705324800.sh
+│   └── ...
 ├── starship/             # Starship prompt config (stow package)
 ├── vim/                  # Vim configuration (stow package)
 ├── nano/                 # Nano configuration (stow package)
@@ -282,6 +289,239 @@ DISTRO=$(dotfiles-detect-linux-distro)
 echo "Detected: $DISTRO"
 ```
 
+## Migration System
+
+The dotfiles use a migration system to handle structural changes over time. This allows for safe evolution of the dotfiles structure without breaking existing installations.
+
+### Overview
+
+- **Migration files**: Stored in `migrations/` directory
+- **Naming**: Unix timestamp from last git commit (e.g., `1705324800.sh`)
+- **Tracking**: Applied migrations tracked via empty marker files in `~/.local/state/dotfiles/migrations/`
+- **Execution**: Migrations run automatically on `dotfiles-update`
+
+### Architecture
+
+```
+dotfiles-update runs
+    ↓
+git pull (get latest code)
+    ↓
+dotfiles-run-migrations
+    ├─ Scans: migrations/*.sh files
+    ├─ Checks: ~/.local/state/dotfiles/migrations/ for applied/skipped
+    ├─ Runs: pending migrations in chronological order
+    ├─ Executes: bash -euo pipefail <migration-file>
+    └─ Tracks: Creates empty marker file on success
+        ↓
+On failure:
+    ├─ Prompts: Skip and continue? (interactive with gum or read)
+    ├─ Skip: Creates marker in skipped/ subdirectory
+    └─ Stop: Exits with error, user can retry later
+```
+
+### Creating Migrations
+
+**Generate a new migration:**
+```bash
+dotfiles-add-migration
+```
+
+This creates a file in `migrations/` using the timestamp of your last git commit.
+
+**Migration file structure:**
+```bash
+# Migration: Description of what this does
+
+echo "Performing migration..."
+
+# Just plain bash code - no boilerplate needed
+# The runner provides error handling (set -euo pipefail)
+
+mkdir -p "$DOTFILES_DIR/new-directory"
+mv old-location new-location
+```
+
+**Key points:**
+- No shebang needed
+- No `set -euo pipefail` needed (provided by runner)
+- Can use `$DOTFILES_DIR` variable
+- Should be idempotent when possible
+- Should fail fast on errors
+
+### Migration State
+
+**State location:** `~/.local/state/dotfiles/migrations/`
+
+**Structure:**
+```
+~/.local/state/dotfiles/migrations/
+├── 1705324800.sh          # Empty file = migration applied
+├── 1705411200.sh          # Empty file = migration applied
+└── skipped/
+    └── 1705497600.sh      # Empty file = migration skipped
+```
+
+**Benefits:**
+- Easy to inspect: `ls ~/.local/state/dotfiles/migrations/`
+- Easy to manage: Delete marker to re-run migration
+- Atomic: File creation is atomic operation
+- No parsing: Just check if file exists
+
+### Helper Scripts
+
+**dotfiles-add-migration**
+- Creates new migration file with timestamp from last git commit
+- Timestamp format: Unix timestamp (10 digits)
+- Ensures `migrations/` directory exists
+- Checks for existing file with same timestamp
+
+**dotfiles-run-migrations**
+- Finds all `migrations/*.sh` files
+- Checks which are pending (not in state directory)
+- Runs pending migrations in chronological order
+- Captures output and exit codes
+- On failure: Prompts to skip or stop
+- Creates marker files for applied/skipped migrations
+- Uses `gum confirm` if available, falls back to `read -p`
+
+**dotfiles-migrations-status**
+- Shows all migrations with their status
+- Status indicators: ✅ applied, ⏭️ skipped, ⏳ pending
+- Summary counts
+
+### Workflow
+
+**Normal update flow:**
+```bash
+$ dotfiles-update
+🔄 Updating dotfiles...
+✅ Git pull successful
+
+Running migration: 1705324800
+Moving packages to config/...
+✅ Migration applied
+
+✅ All migrations complete
+
+✅ Dotfiles updated successfully
+```
+
+**Migration failure flow:**
+```bash
+$ dotfiles-update
+🔄 Updating dotfiles...
+✅ Git pull successful
+
+Running migration: 1705324800
+❌ Migration failed with exit code: 1
+
+Output:
+mkdir: cannot create directory 'config': Permission denied
+
+Migration 1705324800 failed. Skip and continue? [y/N] n
+
+❌ Stopping due to migration failure
+❌ Migrations failed
+   Your dotfiles are updated but migrations didn't complete
+   Please fix the issue and run: dotfiles-run-migrations
+```
+
+**Check status:**
+```bash
+$ dotfiles-migrations-status
+Migration Status
+================
+
+✅ applied  1705324800
+✅ applied  1705411200
+⏳ pending  1705497600
+
+Total: 3 (2 applied, 0 skipped, 1 pending)
+```
+
+### Design Decisions
+
+**Why Unix timestamps?**
+- Derived from git commit timestamp (reproducible)
+- Chronologically sortable
+- Simple and deterministic
+- No collision concerns for personal repos
+
+**Why empty marker files?**
+- Simpler than parsing a list file
+- Easy to inspect with standard tools (`ls`, `find`)
+- Atomic operations (file creation)
+- Easy to manually manage (delete to re-run)
+
+**Why subprocess execution?**
+- Clean error capture (exit codes)
+- Output capture for better error messages
+- Process isolation (can't break parent shell)
+- Can apply error handling via `bash -euo pipefail`
+
+**Why interactive skip?**
+- Sometimes migrations fail for transient reasons
+- User can decide to skip and continue vs stop
+- Tracked separately so skipped migrations don't re-run
+- Graceful degradation without `gum` dependency
+
+### Best Practices
+
+**When writing migrations:**
+1. Make them idempotent when possible (can be run multiple times safely)
+2. Check prerequisites before making changes
+3. Use `$DOTFILES_DIR` instead of hardcoded paths
+4. Fail fast on errors (rely on `-e` flag)
+5. Add descriptive echo messages for progress
+6. Keep migrations focused on one logical change
+
+**When NOT to use migrations:**
+- Adding new config files (just stow them)
+- Changing config values (just update the file)
+- Installing new packages (update installer)
+- Use migrations for structural changes only
+
+### Common Patterns
+
+**Moving directories:**
+```bash
+# Migration: Move stow packages to config/ directory
+
+echo "Moving stow packages to config/..."
+
+cd "$DOTFILES_DIR"
+
+mkdir -p config
+
+for pkg in fish git starship ssh; do
+    [[ -d "$pkg" ]] && mv "$pkg" "config/"
+done
+```
+
+**Cleaning up old files:**
+```bash
+# Migration: Remove deprecated config files
+
+echo "Removing deprecated files..."
+
+[[ -f "$HOME/.old-config" ]] && rm "$HOME/.old-config"
+[[ -d "$HOME/.old-directory" ]] && rm -rf "$HOME/.old-directory"
+```
+
+**Updating symlinks:**
+```bash
+# Migration: Re-stow packages after directory move
+
+echo "Re-stowing packages..."
+
+cd "$DOTFILES_DIR"
+
+for pkg in fish git starship; do
+    stow --restow --dir=config --target="$HOME" "$pkg"
+done
+```
+
 ## Package Management
 
 ### Installed Packages
@@ -332,8 +572,7 @@ ensure_installed() function handles:
 - WSL requires manual Windows username in path
 - No validation that 1Password is correctly configured before proceeding
 - Tied to davidwinter/dotfiles repo currently, so others can't use the same dotfiles project setup without needing to manually modify some of the dotfiles shell scripts
-- We're not using a migration system for updates which can handle tidy up tasks if we make changes, such as changing the location of stow package files for example, or removing packages that are no longer needed
-- Stow packages are currently stored in the root of the project directory, rather than within a `configs` or similar directory structure, but we can't change this yet (assumed) without a migration system in place in order to tidy up previous stow configurations
+- Stow packages are currently stored in the root of the project directory, rather than within a `configs` or similar directory structure (can now be changed via migration)
 - We're not using a config file to store user specific configurations, such as repo location or other user-specific settings
 - We're not using a config file to store packages that users want installed, or configurations to be handled via stow, making the concept of the project reusable by others
 
@@ -484,8 +723,9 @@ ensure_installed() function handles:
 1. User runs `dotfiles-update` or notified by `dotfiles-updates-notify`
 2. `dotfiles-check-updates` runs once per day on interactive shell startup
 3. Script runs git pull in ~/dotfiles (via SSH after initial setup)
-4. Changes are immediately active (symlinks point to updated files)
-5. **Note**: New packages or stow packages require re-running `dotfiles-install`
+4. Script runs `dotfiles-run-migrations` to apply any pending migrations
+5. Changes are immediately active (symlinks point to updated files)
+6. **Note**: New packages or stow packages require re-running `dotfiles-install`
 
 ## Philosophy on Configuration
 
@@ -506,3 +746,6 @@ ensure_installed() function handles:
 - ✅ Fish config uses helper scripts (no duplication)
 - ✅ Git remote automatically switches from HTTPS to SSH
 - ✅ Zero code duplication across bash scripts and Fish config
+- ✅ Migration system for safe structural changes over time
+- ✅ Automatic migration execution on updates
+- ✅ Interactive failure handling with skip option

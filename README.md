@@ -44,8 +44,11 @@ The dotfiles system uses 1Password for SSH key management and git commit signing
 
 The dotfiles include helper scripts for common tasks:
 
-- `dotfiles-update` - Pull latest changes from git
+- `dotfiles-update` - Pull latest changes from git and run migrations
 - `dotfiles-check-updates` - Check for updates without applying
+- `dotfiles-add-migration` - Create a new migration file
+- `dotfiles-run-migrations` - Run pending migrations
+- `dotfiles-migrations-status` - Show migration status (applied, pending, skipped)
 - `dotfiles-is-macos` - Check if running on macOS
 - `dotfiles-is-linux` - Check if running on Linux
 - `dotfiles-is-wsl` - Check if running on WSL
@@ -66,11 +69,55 @@ To manually update:
 dotfiles-update
 ```
 
+This will pull the latest changes and automatically run any pending migrations.
+
 To check for updates without applying:
 
 ```bash
 dotfiles-check-updates
 ```
+
+## Migrations
+
+The dotfiles use a migration system to handle structural changes over time. Migrations are automatically run when you update your dotfiles.
+
+### How It Works
+
+- Migration files are stored in `migrations/` directory
+- Each migration is a bash script named with a Unix timestamp (e.g., `1705324800.sh`)
+- Applied migrations are tracked in `~/.local/state/dotfiles/migrations/`
+- Migrations run automatically when you run `dotfiles-update`
+
+### Creating a Migration
+
+To create a new migration:
+
+```bash
+dotfiles-add-migration
+```
+
+This creates a new migration file using the timestamp of your last git commit. Edit the file and add your migration logic (just plain bash code, no boilerplate needed).
+
+### Managing Migrations
+
+Check migration status:
+
+```bash
+dotfiles-migrations-status
+```
+
+Manually run pending migrations:
+
+```bash
+dotfiles-run-migrations
+```
+
+### Migration Behavior
+
+- Migrations run in chronological order (by timestamp)
+- If a migration fails, you'll be prompted to skip it or stop
+- Skipped migrations are tracked separately and won't run again
+- Migration state is stored in `~/.local/state/dotfiles/migrations/`
 
 ## Supported Platforms
 
