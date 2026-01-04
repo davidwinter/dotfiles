@@ -191,3 +191,22 @@ ensure_fish_in_etc_shells && echo "   ✅ fish is listed in /etc/shells"
 (ensure_fish_is_default_shell && echo "   ✅ fish is your default login shell") || echo "   ❌ Run the following to change shell:    chsh -s \"$(command -v fish)\""
 
 echo
+echo "📋 Migrations:"
+echo
+
+# Mark all existing migrations as applied (fresh install already has new structure)
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/migrations"
+mkdir -p "$STATE_DIR"
+
+if [[ -d "$DOTFILES_DIR/migrations" ]]; then
+    for migration in "$DOTFILES_DIR/migrations"/*.sh; do
+        [[ -f "$migration" ]] || continue
+        migration_file=$(basename "$migration")
+        if [[ ! -f "$STATE_DIR/$migration_file" ]]; then
+            touch "$STATE_DIR/$migration_file"
+            echo "   ✅ Marked $migration_file as applied"
+        fi
+    done
+fi
+
+echo

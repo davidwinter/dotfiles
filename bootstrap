@@ -32,5 +32,5 @@ echo
 echo "🚀 Starting installation..."
 echo
 
-export PATH="$DOTFILES_DIR/local-bin/.local/bin:$PATH"
+export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
 exec dotfiles-install

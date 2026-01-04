@@ -92,7 +92,7 @@ dotfiles/
 │   └── .config/git/config-wsl
 ├── ssh/                  # SSH configuration (stow package)
 │   └── .ssh/config
-├── local-bin/            # Custom utility scripts (stow package)
+├── scripts/              # Helper scripts and utilities (stow package)
 │   └── .local/bin/
 │       ├── dotfiles-install
 │       ├── dotfiles-update
@@ -100,7 +100,7 @@ dotfiles/
 │       ├── dotfiles-updates-notify
 │       # Migration scripts
 │       ├── dotfiles-add-migration
-│       ├── dotfiles-run-migrations
+│       ├── dotfiles-migrate
 │       ├── dotfiles-migrations-status
 │       # Helper scripts (composable utilities)
 │       ├── dotfiles-is-macos
@@ -261,7 +261,7 @@ set -euo pipefail  # ALWAYS use this for safety
 - Use meaningful names, not abbreviations
 
 ### Helper Scripts
-- **Location**: `local-bin/.local/bin/dotfiles-*`
+- **Location**: `scripts/.local/bin/dotfiles-*`
 - **Language**: Bash (`#!/usr/bin/env bash`)
 - **Exit codes**: 0=success/true, 1=failure/false, 2=usage error
 - **Composability**: Scripts can call other helper scripts
@@ -307,7 +307,7 @@ dotfiles-update runs
     ↓
 git pull (get latest code)
     ↓
-dotfiles-run-migrations
+dotfiles-migrate
     ├─ Scans: migrations/*.sh files
     ├─ Checks: ~/.local/state/dotfiles/migrations/ for applied/skipped
     ├─ Runs: pending migrations in chronological order
@@ -376,7 +376,7 @@ mv old-location new-location
 - Ensures `migrations/` directory exists
 - Checks for existing file with same timestamp
 
-**dotfiles-run-migrations**
+**dotfiles-migrate**
 - Finds all `migrations/*.sh` files
 - Checks which are pending (not in state directory)
 - Runs pending migrations in chronological order
@@ -424,7 +424,7 @@ Migration 1705324800 failed. Skip and continue? [y/N] n
 ❌ Stopping due to migration failure
 ❌ Migrations failed
    Your dotfiles are updated but migrations didn't complete
-   Please fix the issue and run: dotfiles-run-migrations
+   Please fix the issue and run: dotfiles-migrate
 ```
 
 **Check status:**
@@ -663,7 +663,7 @@ ensure_installed() function handles:
 3. **Keep idempotency** - Scripts must be safe to run multiple times
 4. **Consider existing configs** - Users might have files that would conflict
 5. **Minimal dependencies** - Don't add new required tools without strong justification
-6. **Prefer helper scripts over functions** - Extract reusable logic to small scripts in `local-bin/.local/bin/`
+6. **Prefer helper scripts over functions** - Extract reusable logic to small scripts in `scripts/.local/bin/`
 7. **No summary markdown files** - Don't create `PHASE-X-SUMMARY.md` or similar documentation artifacts
 
 ### When Adding Features
@@ -707,7 +707,7 @@ ensure_installed() function handles:
 2. Bootstrap script downloads and executes
 3. Checks for git (only prerequisite - curl already succeeded)
 4. Clones dotfiles repository to ~/dotfiles via HTTPS (no authentication needed)
-5. Adds ~/dotfiles/local-bin/.local/bin to PATH
+5. Adds ~/dotfiles/scripts/.local/bin to PATH
 6. Executes dotfiles-install from cloned repository
 7. Installer ensures helper scripts are in PATH
 8. Detects OS and distribution using helper scripts (dotfiles-is-macos, dotfiles-is-linux, etc.)
@@ -723,7 +723,7 @@ ensure_installed() function handles:
 1. User runs `dotfiles-update` or notified by `dotfiles-updates-notify`
 2. `dotfiles-check-updates` runs once per day on interactive shell startup
 3. Script runs git pull in ~/dotfiles (via SSH after initial setup)
-4. Script runs `dotfiles-run-migrations` to apply any pending migrations
+4. Script runs `dotfiles-migrate` to apply any pending migrations
 5. Changes are immediately active (symlinks point to updated files)
 6. **Note**: New packages or stow packages require re-running `dotfiles-install`
 

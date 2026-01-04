@@ -47,7 +47,7 @@ The dotfiles include helper scripts for common tasks:
 - `dotfiles-update` - Pull latest changes from git and run migrations
 - `dotfiles-check-updates` - Check for updates without applying
 - `dotfiles-add-migration` - Create a new migration file
-- `dotfiles-run-migrations` - Run pending migrations
+- `dotfiles-migrate` - Run pending migrations
 - `dotfiles-migrations-status` - Show migration status (applied, pending, skipped)
 - `dotfiles-is-macos` - Check if running on macOS
 - `dotfiles-is-linux` - Check if running on Linux
@@ -109,7 +109,7 @@ dotfiles-migrations-status
 Manually run pending migrations:
 
 ```bash
-dotfiles-run-migrations
+dotfiles-migrate
 ```
 
 ### Migration Behavior
