@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+MIGRATIONS_DIR="$DOTFILES_DIR/migrations"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/migrations"
+
+[[ ! -d "$MIGRATIONS_DIR" ]] && exit 0
+
+for file in "$MIGRATIONS_DIR"/*.sh; do
+    [[ ! -f "$file" ]] && continue
+
+    filename=$(basename "$file")
+
+    if [[ ! -f "$STATE_DIR/$filename" && ! -f "$STATE_DIR/skipped/$filename" ]]; then
+        echo "Pending migrations"
+        exit 1
+    fi
+done
+
+exit 0
