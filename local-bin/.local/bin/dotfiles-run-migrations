@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+MIGRATIONS_DIR="$DOTFILES_DIR/migrations"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/migrations"
+
+mkdir -p "$STATE_DIR"
+mkdir -p "$STATE_DIR/skipped"
+
+is_migration_pending() {
+    local filename="$1"
+    [[ ! -f "$STATE_DIR/$filename" && ! -f "$STATE_DIR/skipped/$filename" ]]
+}
+
+prompt_skip() {
+    local filename="$1"
+
+    if command -v gum &>/dev/null; then
+        gum confirm "Migration ${filename%.sh} failed. Skip and continue?"
+    else
+        read -p "Migration ${filename%.sh} failed. Skip and continue? [y/N] " -n 1 -r
+        echo
+        [[ $REPLY =~ ^[Yy]$ ]]
+    fi
+}
+
+run_migration() {
+    local file="$1"
+    local filename=$(basename "$file")
+
+    echo -e "\n\e[32mRunning migration: ${filename%.sh}\e[0m"
+
+    local output
+    local exit_code=0
+
+    output=$(cd "$DOTFILES_DIR" && bash -euo pipefail "$file" 2>&1) || exit_code=$?
+
+    if [[ $exit_code -eq 0 ]]; then
+        [[ -n "$output" ]] && echo "$output"
+        touch "$STATE_DIR/$filename"
+        echo "✅ Migration applied"
+        return 0
+    else
+        echo "❌ Migration failed with exit code: $exit_code"
+        [[ -n "$output" ]] && echo -e "\nOutput:\n$output"
+        return 1
+    fi
+}
+
+for file in "$MIGRATIONS_DIR"/*.sh; do
+    [[ ! -f "$file" ]] && continue
+
+    filename=$(basename "$file")
+
+    if is_migration_pending "$filename"; then
+        if run_migration "$file"; then
+            continue
+        else
+            if prompt_skip "$filename"; then
+                touch "$STATE_DIR/skipped/$filename"
+                echo "⏭️  Migration skipped"
+            else
+                echo -e "\n❌ Stopping due to migration failure"
+                exit 1
+            fi
+        fi
+    fi
+done
+
+echo -e "\n✅ All migrations complete"

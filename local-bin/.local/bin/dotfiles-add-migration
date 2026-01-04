@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+MIGRATIONS_DIR="$DOTFILES_DIR/migrations"
+
+mkdir -p "$MIGRATIONS_DIR"
+
+migration_file="$MIGRATIONS_DIR/$(git log -1 --format=%cd --date=unix).sh"
+
+if [[ -f "$migration_file" ]]; then
+    echo "Migration already exists: $(basename "$migration_file")" >&2
+    exit 1
+fi
+
+touch "$migration_file"
+
+echo "Created migration: $(basename "$migration_file")"

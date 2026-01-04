@@ -4,4 +4,24 @@ set -euo pipefail
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 
 cd "$DOTFILES_DIR"
-git pull
+
+echo "🔄 Updating dotfiles..."
+
+if git pull --rebase; then
+    echo "✅ Git pull successful"
+else
+    echo "❌ Git pull failed" >&2
+    exit 1
+fi
+
+echo
+
+if dotfiles-run-migrations; then
+    echo
+    echo "✅ Dotfiles updated successfully"
+else
+    echo "❌ Migrations failed" >&2
+    echo "   Your dotfiles are updated but migrations didn't complete" >&2
+    echo "   Please fix the issue and run: dotfiles-run-migrations" >&2
+    exit 1
+fi
