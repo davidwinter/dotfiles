@@ -1,0 +1,8 @@
+{
+  "packages": [
+    "git",
+    "stow",
+    "curl",
+    "jq"
+  ]
+}

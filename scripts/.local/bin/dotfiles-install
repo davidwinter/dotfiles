@@ -6,12 +6,10 @@ DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 OP_AGENT_SOCKET_PATH="$HOME/.1password/agent.sock"
 OP_SSH_SIGN_PATH="/usr/local/bin/op-ssh-sign"
 
-# Ensure helper scripts are in PATH (in case run directly, not from bootstrap)
 if ! dotfiles-has-command dotfiles-has-command 2>/dev/null; then
     export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
 fi
 
-# Source shared library
 source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
 
 mark_migrations_as_applied() {
@@ -39,7 +37,11 @@ echo
 echo "📦 Packages:"
 echo
 
-# Install packages from config
+if ! install_core_packages; then
+    echo "   ⚠️  Failed to install core packages - please install them manually (e.g. git, stow, curl, jq)" >&2
+    exit 1
+fi
+
 while IFS= read -r pkg; do
     if ensure_package_installed "$pkg"; then
         echo "   ✅ $pkg is installed"
@@ -71,7 +73,6 @@ echo
 echo "📃 Dotfile configs:"
 echo
 
-# Apply configs from config
 while IFS= read -r config; do
     if [[ "$config" == "scripts" ]]; then
         (ensure_dotfiles_config_present "scripts" "." && echo "   ✅ scripts config enabled") || echo "   ❌ scripts config failed"

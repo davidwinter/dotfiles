@@ -1,25 +1,33 @@
 #!/usr/bin/env bash
-# Check dotfiles health and report status
-
 set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 
-# Ensure helper scripts are in PATH
 if ! dotfiles-has-command dotfiles-has-command 2>/dev/null; then
     export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
 fi
 
-# Source shared library
 source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
 
 echo "🏥 Dotfiles Health Check"
 echo
 
-# Packages
 echo "📦 Packages:"
+echo
 
+echo "🔧 Core packages (toolchain):"
+check_core_packages
+echo
+
+echo "🔧 User packages:"
 while IFS= read -r pkg; do
+    [[ -z "$pkg" ]] && continue
+
+    if is_core_package "$pkg"; then
+        echo "   ℹ️  Skipping core package: $pkg"
+        continue
+    fi
+
     if check_package_installed "$pkg"; then
         echo "   ✅ $pkg"
     else
@@ -27,7 +35,6 @@ while IFS= read -r pkg; do
     fi
 done < <(get_packages_for_platform)
 
-# 1Password
 echo
 echo "🔑 1Password:"
 if check_1password_agent; then
@@ -42,7 +49,6 @@ else
     echo "   ❌ SSH sign helper"
 fi
 
-# Git
 echo
 echo "🔐 Git:"
 if check_git_remote_ssh; then
@@ -51,27 +57,25 @@ else
     echo "   ❌ Remote uses HTTPS"
 fi
 
-# Configurations
 echo
 echo "📃 Configurations:"
 
+if check_dotfiles_config_present "scripts" "."; then
+    echo "   ✅ scripts"
+else
+    echo "   ❌ scripts"
+fi
+
 while IFS= read -r config; do
-    if [[ "$config" == "scripts" ]]; then
-        if check_dotfiles_config_present "scripts" "."; then
-            echo "   ✅ scripts"
-        else
-            echo "   ❌ scripts"
-        fi
+    [[ "$config" == "scripts" ]] && continue
+
+    if check_dotfiles_config_present "$config"; then
+        echo "   ✅ $config"
     else
-        if check_dotfiles_config_present "$config"; then
-            echo "   ✅ $config"
-        else
-            echo "   ❌ $config"
-        fi
+        echo "   ❌ $config"
     fi
 done < <(get_configs_for_platform)
 
-# Fish shell
 echo
 echo "🐟 Fish Shell:"
 if check_fish_in_etc_shells; then
@@ -86,7 +90,6 @@ else
     echo "   ❌ Not default shell"
 fi
 
-# Migrations
 echo
 echo "📋 Migrations:"
 if check_migrations_applied; then

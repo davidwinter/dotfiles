@@ -1,8 +1,5 @@
 {
   "packages": [
-    "git",
-    "stow",
-    "curl",
     "fish",
     "starship",
     "eza",

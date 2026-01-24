@@ -4,6 +4,7 @@
 # === Configuration ===
 
 DOTFILES_CONFIG="${DOTFILES_DIR:-$HOME/dotfiles}/dotfiles.json"
+CORE_PACKAGES_FILE="${DOTFILES_DIR:-$HOME/dotfiles}/system/core-packages.json"
 
 get_current_platform() {
     if dotfiles-is-wsl; then
@@ -15,6 +16,67 @@ get_current_platform() {
         echo "${distro:-linux}"
     else
         echo "unknown"
+    fi
+}
+
+# === Core packages helpers ===
+# Read core packages defined for the dotfiles system (git, stow, curl, jq, etc.)
+get_core_packages() {
+    if [[ -f "$CORE_PACKAGES_FILE" ]]; then
+        jq -r '.packages[]' "$CORE_PACKAGES_FILE" 2>/dev/null || true
+    fi
+}
+
+# Check if a package is considered a core package
+# Usage: is_core_package <pkgname>
+is_core_package() {
+    local target="$1"
+    if [[ -z "$target" ]]; then
+        return 1
+    fi
+
+    # Read through core packages and compare
+    local cp
+    while IFS= read -r cp; do
+        [[ -z "$cp" ]] && continue
+        if [[ "$cp" == "$target" ]]; then
+            return 0
+        fi
+    done < <(get_core_packages)
+
+    return 1
+}
+
+# Install core packages defined in system/core-packages.json
+# Returns non-zero on first failure
+install_core_packages() {
+    local pkg
+    if [[ -f "$CORE_PACKAGES_FILE" ]]; then
+        while IFS= read -r pkg; do
+            [[ -z "$pkg" ]] && continue
+            if ! ensure_package_installed "$pkg"; then
+                echo "   ⚠️  Failed to install core package: $pkg" >&2
+                return 1
+            fi
+        done < <(get_core_packages)
+    fi
+    return 0
+}
+
+# Check core packages and print status lines (used by dotfiles-doctor)
+check_core_packages() {
+    local pkg
+    if [[ -f "$CORE_PACKAGES_FILE" ]]; then
+        while IFS= read -r pkg; do
+            [[ -z "$pkg" ]] && continue
+            if check_package_installed "$pkg"; then
+                echo "   ✅ $pkg"
+            else
+                echo "   ❌ $pkg"
+            fi
+        done < <(get_core_packages)
+    else
+        echo "   ℹ️  No core packages definition found at $CORE_PACKAGES_FILE"
     fi
 }
 
