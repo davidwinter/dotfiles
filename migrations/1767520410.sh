@@ -19,7 +19,7 @@ remove_symlink "$HOME/.local/bin/dotfiles-is-macos"
 remove_symlink "$HOME/.local/bin/dotfiles-is-linux"
 remove_symlink "$HOME/.local/bin/dotfiles-is-wsl"
 remove_symlink "$HOME/.local/bin/dotfiles-is-ubuntu"
-remove_symlink "$HOME/.local/bin/dotfiles-is-archlinux"
+remove_symlink "$HOME/.local/bin/dotfiles-is-arch"
 remove_symlink "$HOME/.local/bin/dotfiles-has-command"
 remove_symlink "$HOME/.local/bin/dotfiles-detect-linux-distro"
 remove_symlink "$HOME/.ssh/config"
@@ -73,7 +73,7 @@ done
 
 # Handle platform-specific packages using helper scripts
 dotfiles-is-macos && stow_package ghostty-macOS
-dotfiles-is-archlinux && stow_package omarchy
+dotfiles-is-arch && stow_package omarchy
 dotfiles-is-wsl && stow_package git-wsl
 
 echo

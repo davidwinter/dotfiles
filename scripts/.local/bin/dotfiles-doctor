@@ -18,31 +18,14 @@ echo
 
 # Packages
 echo "📦 Packages:"
-PACKAGES=(git stow fish starship lazygit lazydocker mise eza)
-for pkg in "${PACKAGES[@]}"; do
+
+while IFS= read -r pkg; do
     if check_package_installed "$pkg"; then
         echo "   ✅ $pkg"
     else
         echo "   ❌ $pkg"
     fi
-done
-
-# Platform-specific packages
-if dotfiles-is-macos; then
-    if check_package_installed "font-jetbrains-mono-nerd-font"; then
-        echo "   ✅ JetBrains Mono Nerd Font"
-    else
-        echo "   ❌ JetBrains Mono Nerd Font"
-    fi
-fi
-
-if dotfiles-is-archlinux; then
-    if check_package_installed "ttf-jetbrains-mono-nerd"; then
-        echo "   ✅ JetBrains Mono Nerd Font"
-    else
-        echo "   ❌ JetBrains Mono Nerd Font"
-    fi
-fi
+done < <(get_packages_for_platform)
 
 # 1Password
 echo
@@ -72,45 +55,21 @@ fi
 echo
 echo "📃 Configurations:"
 
-if check_dotfiles_config_present "scripts" "."; then
-    echo "   ✅ scripts"
-else
-    echo "   ❌ scripts"
-fi
-
-CONFIG_PACKAGES=(ssh git fish starship hushlogin)
-for pkg in "${CONFIG_PACKAGES[@]}"; do
-    if check_dotfiles_config_present "$pkg"; then
-        echo "   ✅ $pkg"
+while IFS= read -r config; do
+    if [[ "$config" == "scripts" ]]; then
+        if check_dotfiles_config_present "scripts" "."; then
+            echo "   ✅ scripts"
+        else
+            echo "   ❌ scripts"
+        fi
     else
-        echo "   ❌ $pkg"
+        if check_dotfiles_config_present "$config"; then
+            echo "   ✅ $config"
+        else
+            echo "   ❌ $config"
+        fi
     fi
-done
-
-# Platform-specific configs
-if dotfiles-is-archlinux; then
-    if check_dotfiles_config_present "omarchy"; then
-        echo "   ✅ omarchy"
-    else
-        echo "   ❌ omarchy"
-    fi
-fi
-
-if dotfiles-is-macos; then
-    if check_dotfiles_config_present "ghostty-macOS"; then
-        echo "   ✅ ghostty-macOS"
-    else
-        echo "   ❌ ghostty-macOS"
-    fi
-fi
-
-if dotfiles-is-wsl; then
-    if check_dotfiles_config_present "git-wsl"; then
-        echo "   ✅ git-wsl"
-    else
-        echo "   ❌ git-wsl"
-    fi
-fi
+done < <(get_configs_for_platform)
 
 # Fish shell
 echo

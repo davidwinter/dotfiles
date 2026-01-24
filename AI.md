@@ -40,7 +40,7 @@ Helper Scripts (composable utilities)
     ├─ dotfiles-is-linux
     ├─ dotfiles-is-wsl
     ├─ dotfiles-is-ubuntu
-    ├─ dotfiles-is-archlinux
+    ├─ dotfiles-is-arch
     ├─ dotfiles-has-command
     └─ dotfiles-detect-linux-distro
         ↓
@@ -116,7 +116,7 @@ dotfiles/
 │       │   ├── dotfiles-is-linux
 │       │   ├── dotfiles-is-wsl
 │       │   ├── dotfiles-is-ubuntu
-│       │   ├── dotfiles-is-archlinux
+│       │   ├── dotfiles-is-arch
 │       │   ├── dotfiles-has-command
 │       │   └── dotfiles-detect-linux-distro
 │       └── lib/          # Shared library code

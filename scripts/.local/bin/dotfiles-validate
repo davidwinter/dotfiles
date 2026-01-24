@@ -1,0 +1,265 @@
+#!/usr/bin/env bash
+# Validate dotfiles JSON configuration
+# Enhanced: prints which packages/configs will be applied vs ignored,
+# including platform conditionals for ignored items.
+
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+CONFIG_FILE="$DOTFILES_DIR/dotfiles.json"
+
+# Ensure local helper scripts are available in PATH so we can source the library.
+export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
+
+# Require jq for parsing
+if ! command -v jq >/dev/null 2>&1; then
+    echo "❌ jq is required but not found. Install jq and try again."
+    echo "   macOS: brew install jq"
+    echo "   Ubuntu/Debian: sudo apt install jq"
+    echo "   Arch: sudo pacman -S jq"
+    exit 1
+fi
+
+# Source shared library (must exist)
+if [[ -f "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
+else
+    echo "❌ Shared library not found: $DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
+    exit 1
+fi
+
+validate_config() {
+    local errors=0
+
+    echo "🔍 Validating dotfiles configuration..."
+    echo
+
+    # Check file exists
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        echo "❌ Configuration file not found: $CONFIG_FILE"
+        return 1
+    fi
+
+    # Check valid JSON syntax
+    if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
+        echo "❌ Invalid JSON syntax in $CONFIG_FILE"
+        echo
+        jq empty "$CONFIG_FILE" 2>&1 | head -10 || true
+        return 1
+    fi
+
+    # Check required top-level keys
+    echo "  Checking structure..."
+    local missing_keys
+    missing_keys=$(jq -r '
+        ["packages", "configs"] as $required
+        | $required - (. | keys)
+        | if length > 0 then "Missing required keys: " + (join(", ")) else empty end
+    ' "$CONFIG_FILE")
+
+    if [[ -n "$missing_keys" ]]; then
+        echo "  ❌ $missing_keys"
+        ((errors++))
+    fi
+
+    # Check packages is an array
+    if ! jq -e '.packages | type == "array"' "$CONFIG_FILE" >/dev/null; then
+        echo "  ❌ 'packages' must be an array"
+        ((errors++))
+    fi
+
+    # Check configs is an array
+    if ! jq -e '.configs | type == "array"' "$CONFIG_FILE" >/dev/null; then
+        echo "  ❌ 'configs' must be an array"
+        ((errors++))
+    fi
+
+    # Validate package objects have required fields
+    echo "  Checking packages..."
+    local invalid_packages
+    invalid_packages=$(jq -r '
+        .packages[]
+        | select(type == "object")
+        | select(has("name") | not)
+        | "Package object missing required field: name"
+    ' "$CONFIG_FILE" 2>/dev/null || true)
+
+    if [[ -n "$invalid_packages" ]]; then
+        echo "  ❌ $invalid_packages"
+        ((errors++))
+    fi
+
+    # Validate config objects have required fields
+    echo "  Checking configs..."
+    local invalid_configs
+    invalid_configs=$(jq -r '
+        .configs[]
+        | select(type == "object")
+        | select(has("name") | not)
+        | "Config object missing required field: name"
+    ' "$CONFIG_FILE" 2>/dev/null || true)
+
+    if [[ -n "$invalid_configs" ]]; then
+        echo "  ❌ $invalid_configs"
+        ((errors++))
+    fi
+
+    # Check for valid platform identifiers
+    echo "  Checking platform identifiers..."
+    local valid_platforms='["macos", "linux", "wsl", "arch", "ubuntu", "debian", "fedora", "rhel", "centos", "alpine"]'
+    local invalid_platforms
+    invalid_platforms=$(jq -r --argjson valid "$valid_platforms" '
+        [
+            (.packages[], .configs[])
+            | select(type == "object")
+            | select(has("platforms"))
+            | .platforms
+            | if type == "array" then
+                .[]
+              elif type == "object" then
+                keys[]
+              else empty end
+        ]
+        | unique
+        | map(select(. as $p | $valid | index($p) | not))
+        | if length > 0 then "Invalid platform identifier(s): " + (join(", ")) else empty end
+    ' "$CONFIG_FILE" 2>/dev/null || true)
+
+    if [[ -n "$invalid_platforms" ]]; then
+        echo "  ⚠️  $invalid_platforms"
+        echo "     Valid platforms: macos, linux, wsl, arch, ubuntu, debian, fedora, rhel, centos, alpine"
+    fi
+
+    echo
+
+    if [[ $errors -ne 0 ]]; then
+        echo "❌ Configuration has $errors error(s)"
+        return 1
+    fi
+
+    echo "✅ Configuration is valid"
+    echo
+
+    # Determine platform (using helper from lib)
+    local platform
+    platform=$(get_current_platform || echo "unknown")
+
+    echo "📊 Summary (evaluated for platform: '$platform')"
+    echo
+
+    # Packages: produce a JSON line per package with computed fields:
+    # id, kind (string|object), applies (true/false), resolved (package name to install, if applicable),
+    # platforms_repr (human-friendly representation of platform conditionals)
+    echo "   📦 Packages:"
+    jq -c --arg platform "$platform" '
+      .packages[]
+      | if type == "string" then
+          {id: ., kind: "string", applies: true, resolved: ., platforms_repr: null}
+        else
+          . as $p
+          | ( $p.name // "" ) as $id
+          | ( $p.platforms // null ) as $plat
+          | ( if ($plat | type) == "array" then
+                ($plat | any(. == $platform or . == "linux"))
+              elif ($plat | type) == "object" then
+                ( ($plat[$platform] != null) or (($plat["linux"] != null) and ($platform != "macos") and ($platform != "wsl")) )
+              else
+                true
+              end
+            ) as $applies
+          | ( if ($plat | type) == "object" then
+                ( if $plat[$platform] != null then $plat[$platform]
+                  elif ($plat["linux"] != null) and ($platform != "macos") and ($platform != "wsl") then $plat["linux"]
+                  else $id end )
+              else $id end
+            ) as $resolved
+          | { id: $id,
+              kind: "object",
+              applies: $applies,
+              resolved: $resolved,
+              platforms_repr:
+                ( if $plat == null then null
+                  elif ($plat | type) == "array" then ($plat | join(", "))
+                  elif ($plat | type) == "object" then ($plat | to_entries | map("\(.key)=\(.value)") | join(", "))
+                  else null end )
+            }
+        end
+    ' "$CONFIG_FILE" | while IFS= read -r line; do
+        local id resolved applies repr
+        id=$(jq -r '.id' <<<"$line")
+        applies=$(jq -r '.applies' <<<"$line")
+        resolved=$(jq -r '.resolved // empty' <<<"$line")
+        repr=$(jq -r '.platforms_repr // empty' <<<"$line")
+
+        if [[ "$applies" == "true" ]]; then
+            if [[ -n "$repr" && -n "$resolved" && "$resolved" != "$id" ]]; then
+                printf "     ✅ %s -> %s\n" "$id" "$resolved"
+            else
+                printf "     ✅ %s\n" "$id"
+            fi
+        else
+            if [[ -n "$repr" ]]; then
+                printf "     ❌ %s   [platforms: %s]\n" "$id" "$repr"
+            else
+                printf "     ❌ %s\n" "$id"
+            fi
+        fi
+    done
+
+    echo
+    echo "   📃 Configs:"
+    echo "     ✅ scripts   (applied automatically)"
+
+    # Configs: similar treatment, but configs do not have a resolved name mapping
+    jq -c --arg platform "$platform" '
+      .configs[]
+      | if type == "string" then
+          {id: ., kind: "string", applies: true, platforms_repr: null}
+        else
+          . as $c
+          | ($c.name // "") as $id
+          | ($c.platforms // null) as $plat
+          | ( if ($plat | type) == "array" then
+                ($plat | any(. == $platform or . == "linux"))
+              elif ($plat | type) == "object" then
+                ( ($plat[$platform] != null) or (($plat["linux"] != null) and ($platform != "macos") and ($platform != "wsl")) )
+              else
+                true
+              end
+            ) as $applies
+          | { id: $id,
+              kind: "object",
+              applies: $applies,
+              platforms_repr:
+                ( if $plat == null then null
+                  elif ($plat | type) == "array" then ($plat | join(", "))
+                  elif ($plat | type) == "object" then ($plat | to_entries | map("\(.key)=\(.value)") | join(", "))
+                  else null end )
+            }
+        end
+    ' "$CONFIG_FILE" | while IFS= read -r line; do
+        local id applies repr
+        id=$(jq -r '.id' <<<"$line")
+        applies=$(jq -r '.applies' <<<"$line")
+        repr=$(jq -r '.platforms_repr // empty' <<<"$line")
+
+        if [[ "$applies" == "true" ]]; then
+            printf "     ✅ %s\n" "$id"
+        else
+            if [[ -n "$repr" ]]; then
+                printf "     ❌ %s   [platforms: %s]\n" "$id" "$repr"
+            else
+                printf "     ❌ %s\n" "$id"
+            fi
+        fi
+    done
+
+    echo
+    echo "   Note: 'scripts' config is always included automatically"
+    echo
+
+    return 0
+}
+
+validate_config

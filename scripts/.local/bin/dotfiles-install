@@ -39,19 +39,15 @@ echo
 echo "📦 Packages:"
 echo
 
-PACKAGES=(git stow fish starship lazygit lazydocker mise eza)
-
-for pkg in "${PACKAGES[@]}"; do
+# Install packages from config
+while IFS= read -r pkg; do
     if ensure_package_installed "$pkg"; then
         echo "   ✅ $pkg is installed"
     else
         echo "   ⚠️  Failed to install $pkg - please install it manually" >&2
         exit 1
     fi
-done
-
-dotfiles-is-macos && ensure_package_installed font-jetbrains-mono-nerd-font && echo "   ✅ JetBrains Mono Nerd Font installed"
-dotfiles-is-archlinux && ensure_package_installed ttf-jetbrains-mono-nerd && echo "   ✅ JetBrains Mono Nerd Font installed"
+done < <(get_packages_for_platform)
 
 echo
 echo "🔑 1Password:"
@@ -75,16 +71,14 @@ echo
 echo "📃 Dotfile configs:"
 echo
 
-(ensure_dotfiles_config_present "scripts" "." && echo "   ✅ scripts config enabled") || echo "   ❌ scripts config failed"
-
-STOW_PACKAGES=(ssh git fish starship hushlogin)
-for pkg in "${STOW_PACKAGES[@]}"; do
-    (ensure_dotfiles_config_present "$pkg" && echo "   ✅ $pkg config enabled") || echo "   ❌ $pkg config failed"
-done
-
-dotfiles-is-archlinux && ensure_dotfiles_config_present "omarchy" && echo "   ✅ omarchy config enabled"
-dotfiles-is-macos && ensure_dotfiles_config_present "ghostty-macOS" && echo "   ✅ ghostty-macOS config enabled"
-dotfiles-is-wsl && ensure_dotfiles_config_present "git-wsl" && echo "   ✅ git-wsl config enabled"
+# Apply configs from config
+while IFS= read -r config; do
+    if [[ "$config" == "scripts" ]]; then
+        (ensure_dotfiles_config_present "scripts" "." && echo "   ✅ scripts config enabled") || echo "   ❌ scripts config failed"
+    else
+        (ensure_dotfiles_config_present "$config" && echo "   ✅ $config config enabled") || echo "   ❌ $config config failed"
+    fi
+done < <(get_configs_for_platform)
 
 echo
 echo "🐟 Fish shell:"

@@ -1,0 +1,40 @@
+{
+  "packages": [
+    "git",
+    "stow",
+    "curl",
+    "fish",
+    "starship",
+    "eza",
+    "mise",
+    "lazygit",
+    "lazydocker",
+    {
+      "name": "nerd-font",
+      "platforms": {
+        "macos": "font-jetbrains-mono-nerd-font",
+        "arch": "ttf-jetbrains-mono-nerd",
+        "ubuntu": "fonts-jetbrains-mono"
+      }
+    }
+  ],
+  "configs": [
+    "git",
+    "ssh",
+    "fish",
+    "starship",
+    "hushlogin",
+    {
+      "name": "ghostty-macOS",
+      "platforms": ["macos"]
+    },
+    {
+      "name": "omarchy",
+      "platforms": ["arch"]
+    },
+    {
+      "name": "git-wsl",
+      "platforms": ["wsl"]
+    }
+  ]
+}

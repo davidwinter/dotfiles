@@ -17,6 +17,14 @@ if ! command -v git >/dev/null 2>&1; then
     exit 1
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+    echo "❌ jq not found. Please install jq first." >&2
+    echo "   macOS: brew install jq (or download from https://jqlang.github.io/jq/)" >&2
+    echo "   Ubuntu/Debian: sudo apt install jq" >&2
+    echo "   Arch: sudo pacman -S jq" >&2
+    exit 1
+fi
+
 if [[ -d "$DOTFILES_DIR" ]]; then
     echo "✅ Dotfiles repository already exists at $DOTFILES_DIR"
 else

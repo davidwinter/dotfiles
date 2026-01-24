@@ -3,6 +3,7 @@
 ## Dependencies
 
 - git
+- jq
 - curl
 - 1Password (recommended, setup instructions below)
 
@@ -49,6 +50,7 @@ The dotfiles include helper scripts for common tasks:
 - `dotfiles-update` - Pull latest changes from git and run migrations
 - `dotfiles-check-updates` - Check for updates without applying
 - `dotfiles-doctor` - Check dotfiles health and report any issues
+- `dotfiles-validate` - Validate the dotfiles.json configuration file
 
 ### Migration Scripts
 - `dotfiles-add-migration` - Create a new migration file
@@ -60,11 +62,108 @@ The dotfiles include helper scripts for common tasks:
 - `dotfiles-is-linux` - Check if running on Linux
 - `dotfiles-is-wsl` - Check if running on WSL
 - `dotfiles-is-ubuntu` - Check if running on Ubuntu
-- `dotfiles-is-archlinux` - Check if running on Arch Linux
+- `dotfiles-is-arch` - Check if running on Arch Linux
 - `dotfiles-has-command` - Check if a command exists
 - `dotfiles-detect-linux-distro` - Output the Linux distribution name
 
 These helper scripts are available in your PATH after installation and are used throughout the dotfiles for consistent OS detection and logic.
+
+## Configuration
+
+The dotfiles system uses a `dotfiles.json` configuration file to define which packages to install and which configs to apply. This makes it easy to customize for different platforms and use cases.
+
+### Configuration File Structure
+
+The `dotfiles.json` file has two main sections:
+
+- **`packages`** - List of packages to install
+- **`configs`** - List of configuration directories to apply with Stow
+
+#### Simple Packages/Configs
+
+For packages or configs that work the same across all platforms:
+
+```json
+{
+  "packages": [
+    "git",
+    "stow",
+    "starship"
+  ],
+  "configs": [
+    "git",
+    "ssh",
+    "starship"
+  ]
+}
+```
+
+**Note:** The `scripts` config is automatically included and should not be added to the JSON file.
+
+#### Platform-Specific Items
+
+For items that only apply to certain platforms:
+
+```json
+{
+  "configs": [
+    {
+      "name": "ghostty-macOS",
+      "platforms": ["macos"]
+    },
+    {
+      "name": "omarchy",
+      "platforms": ["arch"]
+    }
+  ]
+}
+```
+
+#### Platform-Specific Package Names
+
+For packages that have different names on different platforms:
+
+```json
+{
+  "packages": [
+    {
+      "name": "nerd-font",
+      "platforms": {
+        "macos": "font-jetbrains-mono-nerd-font",
+        "arch": "ttf-jetbrains-mono-nerd",
+        "ubuntu": "fonts-jetbrains-mono"
+      }
+    }
+  ]
+}
+```
+
+### Supported Platform Identifiers
+
+- **`macos`** - macOS (any version)
+- **`linux`** - Any Linux distribution
+- **`wsl`** - Windows Subsystem for Linux
+- **`arch`** - Arch Linux
+- **`ubuntu`** - Ubuntu
+- **`debian`** - Debian
+- **`fedora`** - Fedora
+- **`rhel`** - Red Hat Enterprise Linux
+- **`centos`** - CentOS
+- **`alpine`** - Alpine Linux
+
+### Validating Configuration
+
+To validate your `dotfiles.json` configuration:
+
+```bash
+dotfiles-validate
+```
+
+This will check for:
+- Valid JSON syntax
+- Required fields (packages, configs)
+- Proper object structure
+- Valid platform identifiers
 
 ## Updating
 

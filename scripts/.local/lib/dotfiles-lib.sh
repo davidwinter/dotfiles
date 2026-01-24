@@ -1,6 +1,108 @@
 #!/usr/bin/env bash
 # Shared library for dotfiles install and doctor scripts
 
+# === Configuration ===
+
+DOTFILES_CONFIG="${DOTFILES_DIR:-$HOME/dotfiles}/dotfiles.json"
+
+get_current_platform() {
+    if dotfiles-is-wsl; then
+        echo "wsl"
+    elif dotfiles-is-macos; then
+        echo "macos"
+    elif dotfiles-is-linux; then
+        local distro=$(dotfiles-detect-linux-distro)
+        echo "${distro:-linux}"
+    else
+        echo "unknown"
+    fi
+}
+
+# Get packages from config that apply to current platform
+get_packages_for_platform() {
+    local platform=$(get_current_platform)
+
+    jq -r --arg platform "$platform" '
+        .packages[]
+        | if type == "string" then
+            .
+        elif type == "object" then
+            if .platforms then
+                if (.platforms | type) == "array" then
+                    # Array format: check if platform is in list
+                    if (.platforms | map(select(. == $platform or . == "linux")) | length) > 0 then
+                        .name
+                    else empty end
+                elif (.platforms | type) == "object" then
+                    # Object format: get platform-specific package name
+                    if .platforms[$platform] then
+                        .platforms[$platform]
+                    elif .platforms["linux"] and ($platform != "macos" and $platform != "wsl") then
+                        .platforms["linux"]
+                    else empty end
+                else empty end
+            else
+                # No platform restriction
+                .name
+            end
+        else empty end
+    ' "$DOTFILES_CONFIG"
+}
+
+# Get configs from config that apply to current platform
+# Always includes 'scripts' config first
+get_configs_for_platform() {
+    local platform=$(get_current_platform)
+
+    # Always output scripts first
+    echo "scripts"
+
+    # Then output configs from JSON
+    jq -r --arg platform "$platform" '
+        .configs[]
+        | if type == "string" then
+            .
+        elif type == "object" then
+            if .platforms then
+                # Check if platform is in the list
+                if (.platforms | map(select(. == $platform or . == "linux")) | length) > 0 then
+                    .name
+                else empty end
+            else
+                # No platform restriction
+                .name
+            end
+        else empty end
+    ' "$DOTFILES_CONFIG"
+}
+
+# Get all packages (for validation/listing)
+get_all_packages() {
+    jq -r '
+        .packages[]
+        | if type == "string" then
+            .
+        elif type == "object" then
+            .name
+        else empty end
+    ' "$DOTFILES_CONFIG"
+}
+
+# Get all configs (for validation/listing)
+get_all_configs() {
+    # Always include scripts
+    echo "scripts"
+
+    jq -r '
+        .configs[]
+        | if type == "string" then
+            .
+        elif type == "object" then
+            .name
+        else empty end
+    ' "$DOTFILES_CONFIG"
+}
+
 # === Utilities ===
 
 elevate_priv() {
@@ -25,7 +127,7 @@ check_package_installed() {
     elif dotfiles-is-linux; then
         if dotfiles-is-ubuntu; then
             dpkg -s "$pkg" &>/dev/null || dotfiles-has-command "$pkg"
-        elif dotfiles-is-archlinux; then
+        elif dotfiles-is-arch; then
             pacman -Q "$pkg" &>/dev/null || dotfiles-has-command "$pkg"
         fi
     fi
@@ -44,7 +146,7 @@ ensure_package_installed() {
 
         if dotfiles-is-ubuntu; then
             sudo apt update && sudo apt install -y "$pkg"
-        elif dotfiles-is-archlinux; then
+        elif dotfiles-is-arch; then
             sudo pacman -Syu "$pkg"
         fi
     fi
