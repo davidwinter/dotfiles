@@ -19,6 +19,23 @@ Or with a custom repository:
 curl -fsSL https://raw.githubusercontent.com/davidwinter/dotfiles/main/bootstrap | bash -s -- youruser/dotfiles
 ```
 
+## Remote / Headless Install
+
+To install on a remote machine you SSH into (cloud servers, etc.) where you don't want 1Password installed directly:
+
+1. On your **local** machine, ensure 1Password's "Use the SSH Agent" is enabled (you already need this for normal use).
+2. On your **local** machine, add `ForwardAgent yes` for the remote host in `~/.ssh/config`:
+   ```
+   Host my-cloud-box
+     ForwardAgent yes
+   ```
+3. SSH into the remote and run the standard one‑liner.
+
+The installer detects the SSH session via `$SSH_CONNECTION` and:
+- Skips 1Password agent/op-ssh-sign setup.
+- Skips the `git-1password` config override (which would point at the missing `op-ssh-sign` binary).
+- Git signing falls back to native `ssh-keygen`, which signs via the forwarded SSH agent — so your 1Password app on your local machine prompts for biometrics on each commit.
+
 ## 1Password Setup
 
 The dotfiles system uses 1Password for SSH key management and git commit signing.
@@ -63,6 +80,7 @@ The dotfiles include helper scripts for common tasks:
 - `dotfiles-is-wsl` - Check if running on WSL
 - `dotfiles-is-ubuntu` - Check if running on Ubuntu
 - `dotfiles-is-arch` - Check if running on Arch Linux
+- `dotfiles-is-ssh-session` - Check if the current shell is an SSH session
 - `dotfiles-has-command` - Check if a command exists
 - `dotfiles-detect-linux-distro` - Output the Linux distribution name
 
@@ -150,6 +168,32 @@ For packages that have different names on different platforms:
 - **`rhel`** - Red Hat Enterprise Linux
 - **`centos`** - CentOS
 - **`alpine`** - Alpine Linux
+
+#### Trait-Gated Items
+
+`platforms` answers "what OS"; `traits` answers "what kind of host". Add a `traits` field alongside (or instead of) `platforms` to gate an item on host characteristics:
+
+```json
+{
+  "configs": [
+    {
+      "name": "git-1password",
+      "traits": ["desktop"]
+    },
+    {
+      "name": "git-wsl",
+      "traits": ["wsl"]
+    }
+  ]
+}
+```
+
+When both `platforms` and `traits` are set on an item, **both must match** (AND between fields, OR within each list).
+
+### Supported Traits
+
+- **`desktop`** - Host is not currently an SSH session (i.e., the install is running locally on the machine, not over SSH). Use this to gate items that require GUI apps like 1Password.
+- **`wsl`** - Host is running under Windows Subsystem for Linux.
 
 ### Validating Configuration
 

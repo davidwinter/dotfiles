@@ -33,20 +33,24 @@ while IFS= read -r pkg; do
     else
         echo "   ❌ $pkg"
     fi
-done < <(get_packages_for_platform)
+done < <(get_packages_for_host)
 
 echo
 echo "🔑 1Password:"
-if check_1password_agent; then
-    echo "   ✅ Agent socket"
+if dotfiles-is-ssh-session; then
+    echo "   ℹ️  SSH session — 1Password not expected on this host"
 else
-    echo "   ❌ Agent socket"
-fi
+    if check_1password_agent; then
+        echo "   ✅ Agent socket"
+    else
+        echo "   ❌ Agent socket"
+    fi
 
-if check_1password_ssh_sign; then
-    echo "   ✅ SSH sign helper"
-else
-    echo "   ❌ SSH sign helper"
+    if check_1password_ssh_sign; then
+        echo "   ✅ SSH sign helper"
+    else
+        echo "   ❌ SSH sign helper"
+    fi
 fi
 
 echo
@@ -74,7 +78,7 @@ while IFS= read -r config; do
     else
         echo "   ❌ $config"
     fi
-done < <(get_configs_for_platform)
+done < <(get_configs_for_host)
 
 echo
 echo "🐟 Fish Shell:"

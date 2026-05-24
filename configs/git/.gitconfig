@@ -4,8 +4,6 @@
   signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHRx3xQQg/2JYnCvvxSSNsKcvefeCAkPd4QRO3UURjJ4
 [gpg]
   format = ssh
-[gpg "ssh"]
-  program = "/usr/local/bin/op-ssh-sign"
 [commit]
   gpgsign = true
 [tag]
@@ -28,5 +26,7 @@
   autostash = true
 [init]
   defaultBranch = main
+[include]
+  path = ~/.config/git/config-1password
 [include]
   path = ~/.config/git/config-wsl

@@ -30,8 +30,12 @@
       "platforms": ["arch"]
     },
     {
+      "name": "git-1password",
+      "traits": ["desktop"]
+    },
+    {
       "name": "git-wsl",
-      "platforms": ["wsl"]
+      "traits": ["wsl"]
     }
   ]
 }

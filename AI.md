@@ -193,6 +193,7 @@ dotfiles/
 **Helper Scripts** (see Helper Scripts section below)
 - Small, composable utilities for OS detection and common tasks
 - Used by installer, Fish config, and available for user scripts
+- Includes `dotfiles-is-ssh-session` for gating 1Password-related setup on remote/headless hosts
 
 ### Configuration Files
 
@@ -249,8 +250,36 @@ dotfiles/
 - op-ssh-sign path: `/mnt/c/Users/<username>/AppData/Local/1Password/app/8/op-ssh-sign-wsl`
 - Git uses ssh.exe instead of native SSH
 - Different signing key than macOS/Linux machines
-- Stows: git-wsl package to override git configuration
+- Stows: git-wsl package (gated on the `wsl` trait, not the platform) to override git configuration
+- `get_current_platform()` returns the underlying distro (e.g. `ubuntu`) on WSL; WSL-ness is exposed via the `wsl` trait so OS-specific package logic still works
 - **Note**: Windows username path is currently hardcoded per-machine
+
+## Traits System
+
+`dotfiles.json` entries can be gated on two orthogonal dimensions:
+
+- **`platforms`** — what OS (`macos`, `ubuntu`, `arch`, …). Existing behaviour, unchanged.
+- **`traits`** — what kind of host (currently `desktop`, `wsl`). New, additive.
+
+When both are set on an item, both must match (AND between fields, OR within each list).
+
+### Current traits
+
+- `desktop` — host is not in an SSH session (`$SSH_CONNECTION`/`$SSH_CLIENT` not set). Determined at install time by `dotfiles-is-ssh-session`.
+- `wsl` — host is running under WSL.
+
+### Library functions
+
+- `get_current_platform()` — returns single platform string (underlying distro on WSL).
+- `get_current_traits()` — emits one trait per line for the current host.
+- `get_current_traits_json()` — same, but as a JSON array (for jq).
+- `get_packages_for_host()` / `get_configs_for_host()` — return the filtered set for the current host (platforms AND traits considered).
+
+### Adding a new trait
+
+1. Update `get_current_traits()` in `dotfiles-lib.sh` to emit the new trait when the host satisfies it.
+2. Add it to the valid traits list in `dotfiles-validate`.
+3. Document it under "Supported Traits" in README.md.
 
 ## Coding Standards & Conventions
 
@@ -291,6 +320,7 @@ set -euo pipefail  # ALWAYS use this for safety
 - **Examples**:
   - `dotfiles-is-macos` - Boolean check via exit code
   - `dotfiles-is-wsl` - Boolean check via exit code
+  - `dotfiles-is-ssh-session` - Boolean check via exit code (checks `$SSH_CONNECTION`/`$SSH_CLIENT`)
   - `dotfiles-has-command git` - Takes argument, checks if command exists
   - `dotfiles-detect-linux-distro` - Outputs value to stdout
 
@@ -601,6 +631,11 @@ ensure_installed() function handles:
 - Signs commits and tags automatically when configured
 - Public key fingerprint stored in .gitconfig as `user.signingkey`
 
+### Remote / Headless Installs
+- When installing over SSH (`$SSH_CONNECTION` set), `dotfiles-install` auto-skips the 1Password agent and op-ssh-sign setup, and the `git-1password` stow package is filtered out via its `desktop` trait
+- Base `.gitconfig` does not hardcode `gpg.ssh.program`; the override lives in the separate `git-1password` package and is included via `~/.config/git/config-1password` (git silently ignores missing includes)
+- Git signing on remote hosts works through the forwarded SSH agent via native `ssh-keygen` — the user must have `ForwardAgent yes` set for the remote on their local `~/.ssh/config`
+
 ### Current Limitations
 - Signing keys are hardcoded per machine (no templating yet)
 - No automatic key discovery from 1Password
@@ -610,7 +645,6 @@ ensure_installed() function handles:
 - Git signing keys are hardcoded per machine (no templating system)
 - WSL username path hardcoded in 1Password setup
 - We're not using a config file to store user specific configurations, such as repo location or other user-specific settings
-- We're not using a config file to store packages that users want installed, or configurations to be handled via stow, making the concept of the project reusable by others
 - No automated testing or CI
 
 ## Common Tasks

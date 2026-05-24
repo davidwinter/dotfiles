@@ -49,17 +49,22 @@ while IFS= read -r pkg; do
         echo "   ⚠️  Failed to install $pkg - please install it manually" >&2
         exit 1
     fi
-done < <(get_packages_for_platform)
+done < <(get_packages_for_host)
 
 echo
 echo "🔑 1Password:"
 echo
 
-if ! dotfiles-is-wsl; then
-    ensure_1password_agent "$OP_AGENT_SOCKET_PATH" && echo "   ✅ 1Password agent socket OK"
-fi
+if dotfiles-is-ssh-session; then
+    echo "   ℹ️  SSH session detected — skipping 1Password setup"
+    echo "   ℹ️  Git signing will use the forwarded SSH agent via ssh-keygen"
+else
+    if ! dotfiles-is-wsl; then
+        ensure_1password_agent "$OP_AGENT_SOCKET_PATH" && echo "   ✅ 1Password agent socket OK"
+    fi
 
-ensure_1password_ssh_sign "$OP_SSH_SIGN_PATH" && echo "   ✅ 1Password op-ssh-sign helper available at $OP_SSH_SIGN_PATH"
+    ensure_1password_ssh_sign "$OP_SSH_SIGN_PATH" && echo "   ✅ 1Password op-ssh-sign helper available at $OP_SSH_SIGN_PATH"
+fi
 
 echo
 echo "🔐 Git Remote:"
@@ -79,7 +84,7 @@ while IFS= read -r config; do
     else
         (ensure_dotfiles_config_present "$config" && echo "   ✅ $config config enabled") || echo "   ❌ $config config failed"
     fi
-done < <(get_configs_for_platform)
+done < <(get_configs_for_host)
 
 echo
 echo "🐟 Fish shell:"

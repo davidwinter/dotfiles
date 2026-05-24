@@ -7,9 +7,7 @@ DOTFILES_CONFIG="${DOTFILES_DIR:-$HOME/dotfiles}/dotfiles.json"
 CORE_PACKAGES_FILE="${DOTFILES_DIR:-$HOME/dotfiles}/system/core-packages.json"
 
 get_current_platform() {
-    if dotfiles-is-wsl; then
-        echo "wsl"
-    elif dotfiles-is-macos; then
+    if dotfiles-is-macos; then
         echo "macos"
     elif dotfiles-is-linux; then
         local distro=$(dotfiles-detect-linux-distro)
@@ -17,6 +15,19 @@ get_current_platform() {
     else
         echo "unknown"
     fi
+}
+
+get_current_traits() {
+    if ! dotfiles-is-ssh-session; then
+        echo "desktop"
+    fi
+    if dotfiles-is-wsl; then
+        echo "wsl"
+    fi
+}
+
+get_current_traits_json() {
+    get_current_traits | jq -Rn '[inputs | select(length > 0)]'
 }
 
 # === Core packages helpers ===
@@ -80,16 +91,19 @@ check_core_packages() {
     fi
 }
 
-# Get packages from config that apply to current platform
-get_packages_for_platform() {
+# Get packages from config that apply to current host (platform + traits)
+get_packages_for_host() {
     local platform=$(get_current_platform)
+    local host_traits=$(get_current_traits_json)
 
-    jq -r --arg platform "$platform" '
+    jq -r --arg platform "$platform" --argjson host_traits "$host_traits" '
         .packages[]
         | if type == "string" then
             .
         elif type == "object" then
-            if .platforms then
+            if (.traits != null and ((.traits | map(select(. as $t | $host_traits | index($t))) | length) == 0)) then
+                empty
+            elif .platforms then
                 if (.platforms | type) == "array" then
                     # Array format: check if platform is in list
                     if (.platforms | map(select(. == $platform or . == "linux")) | length) > 0 then
@@ -99,7 +113,7 @@ get_packages_for_platform() {
                     # Object format: get platform-specific package name
                     if .platforms[$platform] then
                         .platforms[$platform]
-                    elif .platforms["linux"] and ($platform != "macos" and $platform != "wsl") then
+                    elif .platforms["linux"] and ($platform != "macos") then
                         .platforms["linux"]
                     else empty end
                 else empty end
@@ -111,21 +125,24 @@ get_packages_for_platform() {
     ' "$DOTFILES_CONFIG"
 }
 
-# Get configs from config that apply to current platform
+# Get configs from config that apply to current host (platform + traits)
 # Always includes 'scripts' config first
-get_configs_for_platform() {
+get_configs_for_host() {
     local platform=$(get_current_platform)
+    local host_traits=$(get_current_traits_json)
 
     # Always output scripts first
     echo "scripts"
 
     # Then output configs from JSON
-    jq -r --arg platform "$platform" '
+    jq -r --arg platform "$platform" --argjson host_traits "$host_traits" '
         .configs[]
         | if type == "string" then
             .
         elif type == "object" then
-            if .platforms then
+            if (.traits != null and ((.traits | map(select(. as $t | $host_traits | index($t))) | length) == 0)) then
+                empty
+            elif .platforms then
                 # Check if platform is in the list
                 if (.platforms | map(select(. == $platform or . == "linux")) | length) > 0 then
                     .name
@@ -257,8 +274,8 @@ ensure_1password_agent() {
         return 0
     fi
 
-    echo "Ensure the 1Password agent is running and the socket exists at $socket (or create an appropriate symlink)."
-    exit 1
+    echo "   ⚠️  Ensure the 1Password agent is running and the socket exists at $socket (or create an appropriate symlink)." >&2
+    return 1
 }
 
 check_1password_ssh_sign() {

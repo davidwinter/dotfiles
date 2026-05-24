@@ -131,6 +131,27 @@ validate_config() {
         echo "     Valid platforms: macos, linux, wsl, arch, ubuntu, debian, fedora, rhel, centos, alpine"
     fi
 
+    # Check for valid trait identifiers
+    echo "  Checking trait identifiers..."
+    local valid_traits='["desktop", "wsl"]'
+    local invalid_traits
+    invalid_traits=$(jq -r --argjson valid "$valid_traits" '
+        [
+            (.packages[], .configs[])
+            | select(type == "object")
+            | select(has("traits"))
+            | .traits[]?
+        ]
+        | unique
+        | map(select(. as $t | $valid | index($t) | not))
+        | if length > 0 then "Invalid trait identifier(s): " + (join(", ")) else empty end
+    ' "$CONFIG_FILE" 2>/dev/null || true)
+
+    if [[ -n "$invalid_traits" ]]; then
+        echo "  ⚠️  $invalid_traits"
+        echo "     Valid traits: desktop, wsl"
+    fi
+
     echo
 
     if [[ $errors -ne 0 ]]; then
@@ -141,36 +162,44 @@ validate_config() {
     echo "✅ Configuration is valid"
     echo
 
-    # Determine platform (using helper from lib)
-    local platform
+    # Determine host context (using helpers from lib)
+    local platform host_traits host_traits_display
     platform=$(get_current_platform || echo "unknown")
+    host_traits=$(get_current_traits_json)
+    host_traits_display=$(get_current_traits | paste -sd, - || true)
+    [[ -z "$host_traits_display" ]] && host_traits_display="(none)"
 
-    echo "📊 Summary (evaluated for platform: '$platform')"
+    echo "📊 Summary (evaluated for platform: '$platform', traits: '$host_traits_display')"
     echo
 
     # Packages: produce a JSON line per package with computed fields:
     # id, kind (string|object), applies (true/false), resolved (package name to install, if applicable),
-    # platforms_repr (human-friendly representation of platform conditionals)
+    # platforms_repr / traits_repr (human-friendly representation of conditionals)
     echo "   📦 Packages:"
-    jq -c --arg platform "$platform" '
+    jq -c --arg platform "$platform" --argjson host_traits "$host_traits" '
       .packages[]
       | if type == "string" then
-          {id: ., kind: "string", applies: true, resolved: ., platforms_repr: null}
+          {id: ., kind: "string", applies: true, resolved: ., platforms_repr: null, traits_repr: null}
         else
           . as $p
           | ( $p.name // "" ) as $id
           | ( $p.platforms // null ) as $plat
+          | ( $p.traits // null ) as $trts
+          | ( if $trts == null then true
+              else ($trts | any(. as $t | $host_traits | index($t))) end
+            ) as $traits_match
           | ( if ($plat | type) == "array" then
                 ($plat | any(. == $platform or . == "linux"))
               elif ($plat | type) == "object" then
-                ( ($plat[$platform] != null) or (($plat["linux"] != null) and ($platform != "macos") and ($platform != "wsl")) )
+                ( ($plat[$platform] != null) or (($plat["linux"] != null) and ($platform != "macos")) )
               else
                 true
               end
-            ) as $applies
+            ) as $plat_match
+          | ($traits_match and $plat_match) as $applies
           | ( if ($plat | type) == "object" then
                 ( if $plat[$platform] != null then $plat[$platform]
-                  elif ($plat["linux"] != null) and ($platform != "macos") and ($platform != "wsl") then $plat["linux"]
+                  elif ($plat["linux"] != null) and ($platform != "macos") then $plat["linux"]
                   else $id end )
               else $id end
             ) as $resolved
@@ -182,25 +211,36 @@ validate_config() {
                 ( if $plat == null then null
                   elif ($plat | type) == "array" then ($plat | join(", "))
                   elif ($plat | type) == "object" then ($plat | to_entries | map("\(.key)=\(.value)") | join(", "))
-                  else null end )
+                  else null end ),
+              traits_repr:
+                ( if $trts == null then null
+                  else ($trts | join(", ")) end )
             }
         end
     ' "$CONFIG_FILE" | while IFS= read -r line; do
-        local id resolved applies repr
+        local id resolved applies plat_repr trts_repr filters
         id=$(jq -r '.id' <<<"$line")
         applies=$(jq -r '.applies' <<<"$line")
         resolved=$(jq -r '.resolved // empty' <<<"$line")
-        repr=$(jq -r '.platforms_repr // empty' <<<"$line")
+        plat_repr=$(jq -r '.platforms_repr // empty' <<<"$line")
+        trts_repr=$(jq -r '.traits_repr // empty' <<<"$line")
+
+        filters=""
+        [[ -n "$plat_repr" ]] && filters="platforms: $plat_repr"
+        if [[ -n "$trts_repr" ]]; then
+            [[ -n "$filters" ]] && filters="$filters; "
+            filters="${filters}traits: $trts_repr"
+        fi
 
         if [[ "$applies" == "true" ]]; then
-            if [[ -n "$repr" && -n "$resolved" && "$resolved" != "$id" ]]; then
+            if [[ -n "$resolved" && "$resolved" != "$id" ]]; then
                 printf "     ✅ %s -> %s\n" "$id" "$resolved"
             else
                 printf "     ✅ %s\n" "$id"
             fi
         else
-            if [[ -n "$repr" ]]; then
-                printf "     ❌ %s   [platforms: %s]\n" "$id" "$repr"
+            if [[ -n "$filters" ]]; then
+                printf "     ❌ %s   [%s]\n" "$id" "$filters"
             else
                 printf "     ❌ %s\n" "$id"
             fi
@@ -212,22 +252,27 @@ validate_config() {
     echo "     ✅ scripts   (applied automatically)"
 
     # Configs: similar treatment, but configs do not have a resolved name mapping
-    jq -c --arg platform "$platform" '
+    jq -c --arg platform "$platform" --argjson host_traits "$host_traits" '
       .configs[]
       | if type == "string" then
-          {id: ., kind: "string", applies: true, platforms_repr: null}
+          {id: ., kind: "string", applies: true, platforms_repr: null, traits_repr: null}
         else
           . as $c
           | ($c.name // "") as $id
           | ($c.platforms // null) as $plat
+          | ($c.traits // null) as $trts
+          | ( if $trts == null then true
+              else ($trts | any(. as $t | $host_traits | index($t))) end
+            ) as $traits_match
           | ( if ($plat | type) == "array" then
                 ($plat | any(. == $platform or . == "linux"))
               elif ($plat | type) == "object" then
-                ( ($plat[$platform] != null) or (($plat["linux"] != null) and ($platform != "macos") and ($platform != "wsl")) )
+                ( ($plat[$platform] != null) or (($plat["linux"] != null) and ($platform != "macos")) )
               else
                 true
               end
-            ) as $applies
+            ) as $plat_match
+          | ($traits_match and $plat_match) as $applies
           | { id: $id,
               kind: "object",
               applies: $applies,
@@ -235,20 +280,31 @@ validate_config() {
                 ( if $plat == null then null
                   elif ($plat | type) == "array" then ($plat | join(", "))
                   elif ($plat | type) == "object" then ($plat | to_entries | map("\(.key)=\(.value)") | join(", "))
-                  else null end )
+                  else null end ),
+              traits_repr:
+                ( if $trts == null then null
+                  else ($trts | join(", ")) end )
             }
         end
     ' "$CONFIG_FILE" | while IFS= read -r line; do
-        local id applies repr
+        local id applies plat_repr trts_repr filters
         id=$(jq -r '.id' <<<"$line")
         applies=$(jq -r '.applies' <<<"$line")
-        repr=$(jq -r '.platforms_repr // empty' <<<"$line")
+        plat_repr=$(jq -r '.platforms_repr // empty' <<<"$line")
+        trts_repr=$(jq -r '.traits_repr // empty' <<<"$line")
+
+        filters=""
+        [[ -n "$plat_repr" ]] && filters="platforms: $plat_repr"
+        if [[ -n "$trts_repr" ]]; then
+            [[ -n "$filters" ]] && filters="$filters; "
+            filters="${filters}traits: $trts_repr"
+        fi
 
         if [[ "$applies" == "true" ]]; then
             printf "     ✅ %s\n" "$id"
         else
-            if [[ -n "$repr" ]]; then
-                printf "     ❌ %s   [platforms: %s]\n" "$id" "$repr"
+            if [[ -n "$filters" ]]; then
+                printf "     ❌ %s   [%s]\n" "$id" "$filters"
             else
                 printf "     ❌ %s\n" "$id"
             fi
