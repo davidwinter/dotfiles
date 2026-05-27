@@ -351,7 +351,13 @@ ensure_fish_in_etc_shells() {
 
 check_fish_is_default_shell() {
     local fish_path="${1:-$(command -v fish 2>/dev/null || true)}"
-    local current_shell="${SHELL:-$(getent passwd "$(whoami)" 2>/dev/null | cut -d: -f7 || true)}"
+    local current_shell
+
+    if dotfiles-is-macos; then
+        current_shell=$(dscl . -read "/Users/$(whoami)" UserShell 2>/dev/null | awk '{print $2}' || true)
+    else
+        current_shell=$(getent passwd "$(whoami)" 2>/dev/null | cut -d: -f7 || true)
+    fi
 
     [[ "$current_shell" == "$fish_path" ]]
 }
