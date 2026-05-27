@@ -542,10 +542,13 @@ Total: 3 (2 applied, 0 skipped, 1 pending)
 6. Keep migrations focused on one logical change
 
 **When NOT to use migrations:**
-- Adding new config files (just stow them)
 - Changing config values (just update the file)
 - Installing new packages (update installer)
-- Use migrations for structural changes only
+
+**When you MUST use a migration:**
+- Adding new scripts to `scripts/.local/bin/` — existing installs won't get the symlink until stow is re-run. Create a migration that runs `stow --dir="$DOTFILES_DIR" --target="$HOME" --restow scripts`. The migration must not rely on any `dotfiles-*` commands (they may not be stowed yet); use plain `stow` directly.
+- Adding new stow packages that existing users should receive automatically
+- Any structural change that affects existing installations
 
 ### Common Patterns
 
@@ -762,6 +765,7 @@ ensure_installed() function handles:
 - **1Password paths differ by OS** - Check all platforms when modifying
 - **Don't add comments to simple helper scripts** - If a 2-line script needs comments, rename it
 - **Don't create inline functions for reusable logic** - Create helper scripts instead
+- **New scripts need a migration** - Adding a file to `scripts/.local/bin/` requires a companion migration to `--restow scripts`, otherwise existing installs won't get the symlink. The migration must not call any `dotfiles-*` commands since the missing script may be the very thing causing the breakage.
 
 ### Suggested Improvements (Future Considerations)
 - Pre-flight validation that 1Password is installed and configured
