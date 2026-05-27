@@ -6,6 +6,8 @@
     "mise",
     "lazygit",
     "lazydocker",
+    "zellij",
+    "claude-code",
     {
       "name": "nerd-font",
       "platforms": {
@@ -36,6 +38,7 @@
     {
       "name": "git-wsl",
       "traits": ["wsl"]
-    }
+    },
+    "claude"
   ]
 }
