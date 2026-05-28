@@ -1,0 +1,7 @@
+[tools]
+starship = "latest"
+eza = "latest"
+lazygit = "latest"
+lazydocker = "latest"
+zellij = "latest"
+claude-code = "latest"
