@@ -2,6 +2,10 @@
   "packages": [
     "fish",
     {
+      "name": "btop",
+      "platforms": ["macos"]
+    },
+    {
       "name": "nerd-font",
       "platforms": {
         "macos": "font-jetbrains-mono-nerd-font",
