@@ -236,22 +236,67 @@ ensure_package_installed() {
 check_dotfiles_config_present() {
     local pkg="$1"
     local config_dir="${2:-configs}"
-
-    # Check if package directory exists
     local pkg_dir="$DOTFILES_DIR/$config_dir/$pkg"
+
     [[ ! -d "$pkg_dir" ]] && return 1
 
-    # Find first file in package and check if it exists in HOME
-    local first_file=$(find "$pkg_dir" -type f -print -quit)
+    local first_file
+    first_file=$(find "$pkg_dir" -type f -print -quit)
     [[ -z "$first_file" ]] && return 1
 
     local rel_path="${first_file#$pkg_dir/}"
-    [[ -e "$HOME/$rel_path" ]] || [[ -L "$HOME/$rel_path" ]]
+    local target="$HOME/$rel_path"
+
+    [[ ! -e "$target" ]] && return 1
+
+    # Verify the file traces back to dotfiles (handles both direct symlinks and
+    # tree-folded directory symlinks that stow creates)
+    local real_target
+    real_target=$(realpath "$target" 2>/dev/null) || return 1
+    [[ "$real_target" == "$DOTFILES_DIR"* ]]
 }
 
 ensure_dotfiles_config_present() {
     local pkg="$1"
     local config_dir="${2:-configs}"
+    local pkg_dir="$DOTFILES_DIR/$config_dir/$pkg"
+
+    # Check for conflicting files before stowing. A conflict is a file that exists
+    # at the target path but does NOT trace back to dotfiles — covers both direct
+    # file symlinks and tree-folded directory symlinks that stow creates.
+    while IFS= read -r file; do
+        local rel_path="${file#$pkg_dir/}"
+        local target="$HOME/$rel_path"
+        local real_target
+        real_target=$(realpath "$target" 2>/dev/null) || true
+        if [[ -e "$target" ]] && [[ "$real_target" != "$DOTFILES_DIR"* ]]; then
+            echo "   ⚠️  Conflict: $target already exists"
+            local choice
+            while true; do
+                read -r -p "      [b]ackup with timestamp, [d]elete, or [s]kip package? " choice </dev/tty
+                case "$choice" in
+                    b|B)
+                        local backup="${target}.bak.$(date +%Y%m%d%H%M%S)"
+                        mv "$target" "$backup"
+                        echo "      Backed up to $backup"
+                        break
+                        ;;
+                    d|D)
+                        rm -f "$target"
+                        echo "      Deleted $target"
+                        break
+                        ;;
+                    s|S)
+                        echo "      Skipping $pkg"
+                        return 0
+                        ;;
+                    *)
+                        echo "      Please enter b, d, or s"
+                        ;;
+                esac
+            done
+        fi
+    done < <(find "$pkg_dir" -type f)
 
     stow --dir="$DOTFILES_DIR/$config_dir" --target="$HOME" "$pkg"
 }
