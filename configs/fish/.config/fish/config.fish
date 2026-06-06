@@ -29,6 +29,10 @@ if dotfiles-is-wsl
     alias ssh-add=ssh-add.exe
 end
 
+if not dotfiles-has-command zed; and dotfiles-has-command zeditor
+    alias zed=zeditor
+end
+
 starship init fish | source
 
 if status is-interactive; and dotfiles-has-command dotfiles-updates-notify
