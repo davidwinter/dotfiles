@@ -1,0 +1,9 @@
+{
+  "cli_default_open_behavior": "existing_window",
+  "theme": "Omazed",
+  "languages": {
+    "Markdown": {
+      "soft_wrap": "bounded",
+    },
+  },
+}
