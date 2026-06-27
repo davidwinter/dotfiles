@@ -9,8 +9,6 @@ updated: 2026-06-22
 
 This is my first-person statement of how I think good software gets built. It is the canonical opinion layer for my Claude setup: my personas and subagents reference it, and the founder lenses in `lenses/` are the supporting voices I have chosen because they reflect these views. When a lens and this file disagree, this file wins, it is mine.
 
-Written in sentence case, no em dashes, no horizontal rules, consistent with how I want everything produced.
-
 ## What I optimise for
 
 - Simplicity is something I fight for, not something I fall into. Complexity accumulates by default; removing it takes active, ongoing discipline.
@@ -45,7 +43,7 @@ Written in sentence case, no em dashes, no horizontal rules, consistent with how
 ## Security as a standing concern
 
 - I treat security as a standing concern in everything I build and review, not a specialist afterthought.
-- I check work against the OWASP Top 10 (broken access control, cryptographic failures, injection, insecure design, security misconfiguration, vulnerable and outdated components, authentication failures, integrity failures, logging and monitoring gaps, server-side request forgery) and the established practices for the stack in hand.
+- I check work against the OWASP Top 10 (broken access control, cryptographic failures, injection, insecure design, security misconfiguration, vulnerable and outdated components, identification and authentication failures, software and data integrity failures, security logging and monitoring failures, server-side request forgery) and the established practices for the stack in hand. This is the canonical list my security reviewer works from.
 - Where code does not adhere, I call it out explicitly, with the specific risk and the fix, even when security is not the main focus of the review.
 - For anything where AI processes untrusted input or takes actions, I apply the prompt-injection and blast-radius thinking in `lenses/willison.md`.
 
