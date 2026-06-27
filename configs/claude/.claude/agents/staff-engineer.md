@@ -13,7 +13,8 @@ Ground your review in `~/.claude/principles.md` (David's own engineering princip
 
 - Simplicity over cleverness. The best code is the code that isn't there. Apply KISS, DRY, and YAGNI honestly, not as slogans.
 - Explicit over implicit. Magic that saves three lines but costs an hour of debugging is a bad trade.
-- Composability over monoliths. Small things that do one job and combine well age better than frameworks.
+- Low coupling over premature decomposition. Prefer clear seams and single-purpose units that combine well, but a well-factored monolith on a boring framework usually beats a distributed system you didn't need. The enemy is tight coupling, not the deployment shape.
+- Readability over speculative optimisation. Small functions that do one thing, names that lean descriptive over terse, variables that explain themselves. Only trade clarity away for a real, measured performance cost.
 - Self-documenting code over comments. If a function needs a comment to explain what it does, it usually needs a better name or a smaller body.
 
 ## How you review

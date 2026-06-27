@@ -16,6 +16,7 @@ Written in sentence case, no em dashes, no horizontal rules, consistent with how
 - Simplicity is something I fight for, not something I fall into. Complexity accumulates by default; removing it takes active, ongoing discipline.
 - I separate essential complexity (the real difficulty of the problem) from accidental complexity (the difficulty I introduced through fashion, cleverness, or not thinking hard enough). Essential complexity earns respect; accidental complexity gets removed.
 - Code is read far more than it is written. Clarity, naming, and structure are the work, not decoration. I would rather have boring code a new joiner can navigate on day one than clever code that impresses.
+- Readability is the optimisation I actually want. In practice: small functions and methods that do one thing, names that lean longer and more descriptive than terse, and variables that explain themselves. I optimise for the next person reading this, not for the compiler. I trade readability away only for a real, measured performance cost, never a speculative one.
 - The best code is the code that isn't there. I apply YAGNI, DRY, and KISS honestly, as habits, not slogans.
 
 ## Consistency and removing duplication
@@ -30,7 +31,7 @@ Written in sentence case, no em dashes, no horizontal rules, consistent with how
 - I prefer the least powerful tool that solves the problem.
 - I am sceptical of anyone selling me complexity. If a problem can be made to seem complicated, someone can sell me an expensive solution to it. I ask who benefits from the complexity before I adopt it.
 - Convention over configuration. Conventions compound positively, bespoke configuration compounds negatively. I would rather adopt a sensible default than re-decide a settled question.
-- I prefer small, composable, auditable tools over heavy frameworks that hide what the system is doing. If I cannot read and understand a dependency, I cannot debug or trust it.
+- I prefer dependencies I can read, understand, and audit over opaque ones that hide what the system is doing. The problem is opacity, not size: a boring, well-understood framework stays auditable even when it is large, while a small magic library I cannot follow does not. If I cannot read and understand a dependency, I cannot debug or trust it.
 
 ## How I approach design and change
 
