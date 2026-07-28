@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Git SSH commit/tag signing dispatcher for machines with 1Password installed.
+#
+# op-ssh-sign talks to the 1Password app on whatever machine it runs on and
+# ignores $SSH_AUTH_SOCK. That is right locally, but when this desktop is
+# reached over SSH it pops 1Password on *this* box instead of routing back to
+# the machine that forwarded its agent. So: when we are in an SSH session with
+# a forwarded agent, defer to ssh-keygen (which signs through $SSH_AUTH_SOCK,
+# putting the biometric prompt on the laptop that holds the key); otherwise
+# sign locally via op-ssh-sign.
+#
+# git invokes the program as: -Y sign -n git -f <pubkey> -U <buffer>
+# Both backends accept that identical argument shape, so we forward "$@" as-is.
+set -euo pipefail
+
+if [[ -n "${SSH_CONNECTION:-}" && -n "${SSH_AUTH_SOCK:-}" ]]; then
+  exec ssh-keygen "$@"
+else
+  exec /usr/local/bin/op-ssh-sign "$@"
+fi

@@ -630,13 +630,14 @@ ensure_installed() function handles:
 
 **Git Signing:**
 - Uses SSH keys instead of GPG keys (`gpg.format = ssh`)
-- op-ssh-sign binary acts as signing program
+- On `desktop`-trait machines the `git-1password` package sets `gpg.ssh.program` to the `git-ssh-sign` wrapper (`~/.local/bin/git-ssh-sign`, resolved via PATH), not `op-ssh-sign` directly
+- The wrapper dispatches: in an SSH session with a forwarded agent (`$SSH_CONNECTION` and `$SSH_AUTH_SOCK` both set) it signs via `ssh-keygen` through the forwarded agent so the biometric prompt lands on the local machine; otherwise it signs locally via `op-ssh-sign`. This stops a desktop that is also SSH'd into from popping its own 1Password on remote commits
 - Signs commits and tags automatically when configured
 - Public key fingerprint stored in .gitconfig as `user.signingkey`
 
 ### Remote / Headless Installs
 - When installing over SSH (`$SSH_CONNECTION` set), `dotfiles-install` auto-skips the 1Password agent and op-ssh-sign setup, and the `git-1password` stow package is filtered out via its `desktop` trait
-- Base `.gitconfig` does not hardcode `gpg.ssh.program`; the override lives in the separate `git-1password` package and is included via `~/.config/git/config-1password` (git silently ignores missing includes)
+- Base `.gitconfig` does not hardcode `gpg.ssh.program`; the override lives in the separate `git-1password` package (which also ships the `git-ssh-sign` wrapper) and is included via `~/.config/git/config-1password` (git silently ignores missing includes)
 - Git signing on remote hosts works through the forwarded SSH agent via native `ssh-keygen` — the user must have `ForwardAgent yes` set for the remote on their local `~/.ssh/config`
 
 ### Current Limitations
@@ -649,6 +650,7 @@ ensure_installed() function handles:
 - WSL username path hardcoded in 1Password setup
 - We're not using a config file to store user specific configurations, such as repo location or other user-specific settings
 - No automated testing or CI
+- Stow folding is inconsistent: only some stow commands pass `--no-folding`. Folding lets a single-package directory be replaced by one directory symlink (e.g. `~/.local/bin`), which monopolises it and blocks other packages from adding files there (see migration `1785260700.sh`, which unfolds `~/.local/bin` and `~/.local/lib` so `git-1password` can ship `git-ssh-sign`). TODO: audit every `stow` invocation (notably `ensure_dotfiles_config_present` in `dotfiles-lib.sh`, which fresh installs use) and pass `--no-folding` everywhere, then add a migration to unfold any remaining folded directories on existing setups.
 
 ## Common Tasks
 

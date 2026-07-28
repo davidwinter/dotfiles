@@ -36,6 +36,8 @@ The installer detects the SSH session via `$SSH_CONNECTION` and:
 - Skips the `git-1password` config override (which would point at the missing `op-ssh-sign` binary).
 - Git signing falls back to native `ssh-keygen`, which signs via the forwarded SSH agent — so your 1Password app on your local machine prompts for biometrics on each commit.
 
+A machine installed *locally* keeps the `git-1password` override, but it points `gpg.ssh.program` at the `git-ssh-sign` wrapper rather than `op-ssh-sign` directly. When you later SSH into that machine with a forwarded agent, the wrapper signs via `ssh-keygen` through the forwarded agent (prompting on your local machine) instead of popping 1Password on the remote box. Locally it still signs via `op-ssh-sign` as before.
+
 ## 1Password Setup
 
 The dotfiles system uses 1Password for SSH key management and git commit signing.
