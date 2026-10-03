@@ -1,0 +1,9 @@
+# Fallback net for runtime files that apps write into stowed config
+# directories. The per-package .gitignore files (e.g.
+# configs/ssh/.ssh/.gitignore) are the primary guard; these repeat the same
+# patterns by full path in case a directory ever folds again and a package's
+# own .gitignore gets missed or overridden.
+configs/ssh/.ssh/known_hosts*
+configs/ssh/.ssh/authorized_keys
+configs/ssh/.ssh/agent/
+configs/fish/.config/fish/fish_variables
