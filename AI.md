@@ -649,8 +649,8 @@ ensure_installed() function handles:
 - Git signing keys are hardcoded per machine (no templating system)
 - WSL username path hardcoded in 1Password setup
 - We're not using a config file to store user specific configurations, such as repo location or other user-specific settings
-- No automated testing or CI
-- Stow folding is inconsistent: only some stow commands pass `--no-folding`. Folding lets a single-package directory be replaced by one directory symlink (e.g. `~/.local/bin`), which monopolises it and blocks other packages from adding files there (see migration `1785260700.sh`, which unfolds `~/.local/bin` and `~/.local/lib` so `git-1password` can ship `git-ssh-sign`). TODO: audit every `stow` invocation (notably `ensure_dotfiles_config_present` in `dotfiles-lib.sh`, which fresh installs use) and pass `--no-folding` everywhere, then add a migration to unfold any remaining folded directories on existing setups.
+- No automated testing or CI. Suggested minimal setup: a GitHub Action running shellcheck, `dotfiles-validate`, and a fresh-install smoke test in a container that asserts `~/.local` is a real directory and `git-ssh-sign` is linked
+- Stow folding: fresh installs now stow with `--no-folding` (`ensure_dotfiles_config_present` in `dotfiles-lib.sh`). Without it, a fresh machine with no `~/.local` had the whole of `~/.local` folded into `dotfiles/scripts/.local`, which blocked `git-1password` and caused anything written to `~/.local/share` or `~/.local/state` to land in the repo. Older migrations still stow without `--no-folding`; new migrations that stow should pass it. Open: existing installs where `~/.local` itself is folded (check with `test -L ~/.local`) are not fixed, because migration `1785260700.sh` only unfolds `~/.local/bin` and `~/.local/lib`. A new migration would be needed if any machine is affected. Also be careful with `rm` in migrations: on a folded directory, removing a "regular file" deletes the source file in the repo.
 
 ## Common Tasks
 
@@ -685,6 +685,7 @@ ensure_installed() function handles:
 - **Issue**: Windows username is hardcoded in git-wsl/config-wsl
 - **Impact**: Doesn't work if Windows username differs
 - **Workaround**: Manual edit of config-wsl file
+- **Note**: The path is duplicated: `config-wsl` hardcodes the full path including the username and `app/8`, while `ensure_1password_ssh_sign` resolves the username at runtime but still hardcodes `app/8`. Pointing `config-wsl` at `/usr/local/bin/op-ssh-sign` (which the installer creates) would leave one source of truth
 
 ### 1Password Socket (Linux)
 - **Issue**: No automatic socket creation on Linux
@@ -700,6 +701,19 @@ ensure_installed() function handles:
 - **Issue**: chsh may not work in all environments (containers, etc.)
 - **Impact**: Installation "succeeds" but Fish isn't default shell
 - **Workaround**: Script provides manual chsh command to run
+
+### Review backlog (2026-10-03)
+Found in a project review and deliberately deferred. Pick these up individually.
+
+- **Desktop trait depends on the session**: `get_current_traits` marks a host as `desktop` only when not in an SSH session, so running `dotfiles-install` over SSH on a desktop skips `git-1password`. Derive it from the host instead (e.g. presence of `/Applications/1Password.app` or `/opt/1Password`)
+- **Daily update check blocks the prompt**: `dotfiles-updates-notify` runs `git fetch` synchronously on interactive shell start. When offline the fetch fails, the cache date isn't written, and every new shell blocks on the fetch again. Write the date regardless, or run the check in the background
+- **Shell startup spawns bash helpers**: `config.fish` calls `dotfiles-is-macos`, `dotfiles-has-command`, etc., each a separate bash process. Fish builtins (`test (uname) = Darwin`, `type -q`) avoid that
+- **Unknown Linux distros report packages as installed**: `check_package_installed` has no fallback branch, so on Debian, Fedora, Mint, Manjaro, EndeavourOS, etc. it returns success. Read `ID_LIKE` from `/etc/os-release` and fail loudly for unsupported distros
+- **`"linux"` in a platforms array matches on macOS**: the array check is `. == $platform or . == "linux"` without excluding macOS. Latent (nothing uses it yet). The same matching logic is copied four times (packages and configs in `dotfiles-lib.sh`, twice in `dotfiles-validate`); extract one shared jq function
+- **`dotfiles-check-updates` edge cases**: reports "updates available (0 commits behind)" when local is ahead of the remote; compare the behind count instead. With no upstream, `git rev-parse @{u}` fails under `set -e` before the friendly error prints
+- **`dotfiles-validate` error counting**: `((errors++))` returns non-zero when `errors` is 0, which exits under `set -e` on bash 4.1+ (macOS bash 3.2 tolerates it). Use `errors=$((errors + 1))`
+- **Linux package installs are slow and interactive**: Arch runs `sudo pacman -Syu "$pkg"` per package (a full interactive system upgrade each time); Ubuntu runs `apt update` per package. Batch into one install call with `--noconfirm` / `-y`
+- **README drift**: README says the installer installs starship, mise, eza, lazygit and lazydocker; those come from mise (`configs/mise`), and mise itself must be installed separately (fish warns if it is missing)
 
 ## Dependencies & Prerequisites
 

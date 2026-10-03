@@ -13,13 +13,10 @@ if test -d /opt/homebrew
     set -gx PATH /opt/homebrew/bin /opt/homebrew/sbin $PATH
 end
 
-if not dotfiles-has-command mise
-    echo "ℹ️  mise not found - installing..."
-    curl https://mise.run | sh
+if dotfiles-has-command mise
     mise activate fish | source
-    mise install
 else
-    mise activate fish | source
+    echo "⚠️  mise not found - install it from https://mise.jdx.dev then run: mise install"
 end
 
 set -gx fish_greeting ''

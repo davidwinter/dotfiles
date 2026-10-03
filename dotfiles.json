@@ -20,6 +20,8 @@
     "fish",
     "starship",
     "hushlogin",
+    "nano",
+    "vim",
     {
       "name": "ghostty-macOS",
       "platforms": ["macos"]

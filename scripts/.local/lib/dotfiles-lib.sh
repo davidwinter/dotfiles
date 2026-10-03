@@ -298,7 +298,9 @@ ensure_dotfiles_config_present() {
         fi
     done < <(find "$pkg_dir" -type f)
 
-    stow --dir="$DOTFILES_DIR/$config_dir" --target="$HOME" "$pkg"
+    # --no-folding keeps shared directories like ~/.local real, so several
+    # packages can contribute files and nothing gets written into the repo.
+    stow --no-folding --dir="$DOTFILES_DIR/$config_dir" --target="$HOME" "$pkg"
 }
 
 # === 1Password ===
@@ -315,6 +317,7 @@ ensure_1password_agent() {
     check_1password_agent "$socket" && return 0
 
     if dotfiles-is-macos; then
+        mkdir -p "$(dirname "$socket")"
         ln -s "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" "$socket"
         return 0
     fi
