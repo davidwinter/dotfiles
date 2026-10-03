@@ -36,7 +36,7 @@ is_tracked() {
 
 # Collect the set of folded target directories under $HOME, each mapped to
 # the package that owns them.
-declare -A folded_pkgs
+declare -A folded_pkgs=()
 
 for pkg_path in "$CONFIGS_DIR"/*/; do
     pkg_dir="${pkg_path%/}"
@@ -64,7 +64,7 @@ if [[ ${#folded_pkgs[@]} -eq 0 ]]; then
     exit 0
 fi
 
-declare -A pkgs_to_restow
+declare -A pkgs_to_restow=()
 
 for target in "${!folded_pkgs[@]}"; do
     pkg="${folded_pkgs[$target]}"

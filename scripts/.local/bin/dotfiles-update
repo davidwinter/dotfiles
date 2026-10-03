@@ -3,6 +3,10 @@ set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 
+if ! dotfiles-has-command dotfiles-has-command 2>/dev/null; then
+    export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
+fi
+
 cd "$DOTFILES_DIR"
 
 echo "🔄 Updating dotfiles..."
@@ -18,10 +22,22 @@ echo
 
 if dotfiles-migrate; then
     echo
-    echo "✅ Dotfiles updated successfully"
 else
     echo "❌ Migrations failed" >&2
     echo "   Your dotfiles are updated but migrations didn't complete" >&2
     echo "   Please fix the issue and run: dotfiles-migrate" >&2
     exit 1
 fi
+
+echo "📃 Re-syncing dotfile configs..."
+echo
+
+source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
+
+# Idempotent: links any new file a package picked up since this host last
+# updated, so a config package never needs its own migration just to deliver
+# a new file to existing installs.
+stow_configs_for_host || echo "   ⚠️  One or more configs failed to stow" >&2
+
+echo
+echo "✅ Dotfiles updated successfully"

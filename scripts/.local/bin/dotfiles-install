@@ -78,13 +78,7 @@ echo
 echo "📃 Dotfile configs:"
 echo
 
-while IFS= read -r config; do
-    if [[ "$config" == "scripts" ]]; then
-        (ensure_dotfiles_config_present "scripts" "." && echo "   ✅ scripts config enabled") || echo "   ❌ scripts config failed"
-    else
-        (ensure_dotfiles_config_present "$config" && echo "   ✅ $config config enabled") || echo "   ❌ $config config failed"
-    fi
-done < <(get_configs_for_host)
+stow_configs_for_host || echo "   ⚠️  One or more configs failed to stow" >&2
 
 echo
 echo "🐟 Fish shell:"

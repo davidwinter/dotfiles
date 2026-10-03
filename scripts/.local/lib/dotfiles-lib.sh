@@ -303,6 +303,36 @@ ensure_dotfiles_config_present() {
     stow --no-folding --dir="$DOTFILES_DIR/$config_dir" --target="$HOME" "$pkg"
 }
 
+# Re-stow every config that belongs on this host. ensure_dotfiles_config_present
+# is idempotent and already handles new files landing in an already-installed
+# package, so calling this on every `dotfiles-update` (not just fresh installs)
+# means a new file added to an existing package never needs its own migration —
+# it gets linked (backing up any conflicting unmanaged file first) the next
+# time the user updates.
+stow_configs_for_host() {
+    local failed=0
+
+    while IFS= read -r config; do
+        if [[ "$config" == "scripts" ]]; then
+            if ensure_dotfiles_config_present "scripts" "."; then
+                echo "   ✅ scripts config enabled"
+            else
+                echo "   ❌ scripts config failed" >&2
+                failed=1
+            fi
+        else
+            if ensure_dotfiles_config_present "$config"; then
+                echo "   ✅ $config config enabled"
+            else
+                echo "   ❌ $config config failed" >&2
+                failed=1
+            fi
+        fi
+    done < <(get_configs_for_host)
+
+    return "$failed"
+}
+
 # === 1Password ===
 
 check_1password_agent() {
