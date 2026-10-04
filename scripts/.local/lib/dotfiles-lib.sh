@@ -233,6 +233,17 @@ ensure_package_installed() {
 
 # === Dotfiles Configurations ===
 
+# Files in a package that stow will actually link. Stow's default ignore list
+# skips .gitignore (used in fish and ssh to keep runtime files out of the repo),
+# so checking for it in $HOME would always report a false conflict or failure.
+list_stowable_files() {
+    local dir="$1"; shift
+    find "$dir" -type f ! -name '.gitignore' "$@"
+}
+
+# Returns 0 if every file in the package is linked into $HOME. Prints each
+# target that is missing or doesn't resolve to its file in the repo (handles
+# both per-file symlinks and tree-folded directory symlinks).
 check_dotfiles_config_present() {
     local pkg="$1"
     local config_dir="${2:-configs}"
@@ -240,20 +251,18 @@ check_dotfiles_config_present() {
 
     [[ ! -d "$pkg_dir" ]] && return 1
 
-    local first_file
-    first_file=$(find "$pkg_dir" -type f -print -quit)
-    [[ -z "$first_file" ]] && return 1
+    local file target ok=0 found=0
+    while IFS= read -r file; do
+        found=1
+        target="$HOME/${file#$pkg_dir/}"
+        if [[ ! -e "$target" ]] || [[ "$(realpath "$target" 2>/dev/null)" != "$(realpath "$file")" ]]; then
+            echo "~/${file#$pkg_dir/}"
+            ok=1
+        fi
+    done < <(list_stowable_files "$pkg_dir")
 
-    local rel_path="${first_file#$pkg_dir/}"
-    local target="$HOME/$rel_path"
-
-    [[ ! -e "$target" ]] && return 1
-
-    # Verify the file traces back to dotfiles (handles both direct symlinks and
-    # tree-folded directory symlinks that stow creates)
-    local real_target
-    real_target=$(realpath "$target" 2>/dev/null) || return 1
-    [[ "$real_target" == "$DOTFILES_DIR"* ]]
+    [[ $found -eq 1 ]] && return $ok
+    return 1
 }
 
 ensure_dotfiles_config_present() {
@@ -296,7 +305,7 @@ ensure_dotfiles_config_present() {
                 esac
             done
         fi
-    done < <(find "$pkg_dir" -type f)
+    done < <(list_stowable_files "$pkg_dir")
 
     # --no-folding keeps shared directories like ~/.local real, so several
     # packages can contribute files and nothing gets written into the repo.

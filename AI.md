@@ -341,7 +341,7 @@ Every script and migration must run unchanged on macOS, Ubuntu, Arch and WSL. ma
 - **Examples**:
   - `check_package_installed "git"` - Returns 0 if git installed
   - `ensure_package_installed "git"` - Installs git if not present
-  - `check_dotfiles_config_present "fish"` - Returns 0 if fish config stowed
+  - `check_dotfiles_config_present "fish"` - Returns 0 if every file in the fish config is linked; prints any target that is not
   - `ensure_dotfiles_config_present "fish"` - Stows fish config if not present
 
 ### Helper Script Usage
