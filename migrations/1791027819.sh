@@ -34,9 +34,10 @@ is_tracked() {
     fi
 }
 
-# Collect the set of folded target directories under $HOME, each mapped to
-# the package that owns them.
-declare -A folded_pkgs=()
+# Collect the set of folded target directories under $HOME, each with the
+# package that owns them, as "pkg<TAB>path" lines. Plain strings rather than
+# associative arrays: macOS ships bash 3.2, which has no `declare -A`.
+folded=""
 
 for pkg_path in "$CONFIGS_DIR"/*/; do
     pkg_dir="${pkg_path%/}"
@@ -51,7 +52,7 @@ for pkg_path in "$CONFIGS_DIR"/*/; do
             if [[ -L "$path" ]]; then
                 real="$(realpath "$path" 2>/dev/null)" || break
                 if [[ "$real" == "$DOTFILES_DIR"* ]] && [[ -d "$real" ]]; then
-                    folded_pkgs["$path"]="$pkg"
+                    folded+="$pkg"$'\t'"$path"$'\n'
                 fi
                 break
             fi
@@ -59,15 +60,14 @@ for pkg_path in "$CONFIGS_DIR"/*/; do
     done < <(find "$pkg_dir" -type f)
 done
 
-if [[ ${#folded_pkgs[@]} -eq 0 ]]; then
+folded="$(printf '%s' "$folded" | sort -u)"
+
+if [[ -z "$folded" ]]; then
     echo "  No folded config directories found — nothing to do"
     exit 0
 fi
 
-declare -A pkgs_to_restow=()
-
-for target in "${!folded_pkgs[@]}"; do
-    pkg="${folded_pkgs[$target]}"
+while IFS=$'\t' read -r pkg target; do
     real="$(realpath "$target")"
 
     echo "Unfolding $target (package: $pkg)"
@@ -88,12 +88,22 @@ for target in "${!folded_pkgs[@]}"; do
             mv "$entry" "$target/"
         fi
     done < <(find "$real" -mindepth 1 -maxdepth 1 -print0)
-
-    pkgs_to_restow["$pkg"]=1
-done
+done <<< "$folded"
 
 echo "Re-stowing affected packages with --no-folding..."
-for pkg in "${!pkgs_to_restow[@]}"; do
+for pkg in $(printf '%s\n' "$folded" | cut -f1 | sort -u); do
+    # Migrations run against the current repo, so the package may have gained
+    # files since this was written (e.g. ~/.claude/settings.json) that still
+    # exist as real, unmanaged files. Back them up so stow doesn't refuse.
+    while IFS= read -r file; do
+        target="$HOME/${file#$CONFIGS_DIR/$pkg/}"
+        if [[ -e "$target" ]] && [[ "$(realpath "$target" 2>/dev/null)" != "$DOTFILES_DIR"* ]]; then
+            backup="${target}.bak.$(date +%Y%m%d%H%M%S)"
+            mv "$target" "$backup"
+            echo "  Backed up existing $target to $backup"
+        fi
+    done < <(find "$CONFIGS_DIR/$pkg" -type f)
+
     if stow --restow --no-folding --dir="$CONFIGS_DIR" --target="$HOME" "$pkg"; then
         echo "  ✅ $pkg re-stowed"
     else
