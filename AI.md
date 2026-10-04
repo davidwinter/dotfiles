@@ -292,6 +292,13 @@ set -euo pipefail  # ALWAYS use this for safety
 - `-u`: Error on undefined variables
 - `-o pipefail`: Catch errors in pipes
 
+### Portability (macOS and Linux)
+Every script and migration must run unchanged on macOS, Ubuntu, Arch and WSL. macOS ships **bash 3.2** and **BSD** userland, so:
+- **No bash 4+ features**: no `declare -A`/`local -A` (associative arrays), `mapfile`/`readarray`, `${var,,}`/`${var^^}`, `declare -n` namerefs, `&>>` or `|&`. Use newline-separated strings or plain indexed arrays instead
+- **Empty arrays under `set -u`**: `"${arr[@]}"` on an empty array is an "unbound variable" error in bash 3.2. Guard with a length check or avoid the array
+- **GNU vs BSD flags differ**: `sed -i` (BSD needs `sed -i ''`), `stat -c` vs `stat -f`, `date -d`, `readlink -f`, `grep -P`, `find -printf`. Prefer portable forms, or try GNU then fall back to BSD (e.g. `stat -c %a "$f" 2>/dev/null || stat -f %Lp "$f"`)
+- **Test on macOS** (or at least review against this list) before pushing anything that runs during `dotfiles-update`, since a failing migration blocks updates
+
 ### Script Organization
 - **Helper scripts over functions** - Small executable scripts in PATH instead of sourced functions
 - **Composable design** - Scripts call other scripts (e.g., `dotfiles-is-ubuntu` calls `dotfiles-detect-linux-distro`)
