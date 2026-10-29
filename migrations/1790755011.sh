@@ -29,7 +29,7 @@ fi
 # Never rm the file in this branch — stow --restow --no-folding will unfold the
 # directory and replace the path with a proper per-file symlink.
 intended=false
-realpath_include="$(realpath "$include" 2>/dev/null)"
+realpath_include="$(realpath "$include" 2>/dev/null || true)"
 if [[ -n "$realpath_include" ]] && [[ "$realpath_include" == "$DOTFILES_DIR"* ]]; then
     # File resolves into the dotfiles tree (direct symlink or folded dir).
     intended=true
