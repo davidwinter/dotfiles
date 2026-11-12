@@ -21,6 +21,17 @@ end
 
 set -gx fish_greeting ''
 
+# Over SSH, use a stable agent link so terminals that outlive this login
+# (tmux, zellij, herdr) keep working after a reconnect. A fresh login hands us
+# its own forwarded socket (not a symlink), so point the link at it. If the
+# link ever goes stale, run fix-ssh-agent.
+if set -q SSH_CONNECTION; and set -q SSH_AUTH_SOCK
+    if test -S "$SSH_AUTH_SOCK"; and not test -L "$SSH_AUTH_SOCK"
+        ln -sfn "$SSH_AUTH_SOCK" ~/.ssh/agent.sock
+    end
+    set -gx SSH_AUTH_SOCK ~/.ssh/agent.sock
+end
+
 if dotfiles-is-wsl
     alias ssh=ssh.exe
     alias ssh-add=ssh-add.exe

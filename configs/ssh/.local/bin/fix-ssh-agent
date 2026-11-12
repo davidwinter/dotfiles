@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Point ~/.ssh/agent.sock back at a live forwarded SSH agent.
+#
+# In SSH sessions, fish sets SSH_AUTH_SOCK to the stable link ~/.ssh/agent.sock
+# and each new login points it at that login's forwarded agent. Terminals that
+# outlive a login (tmux, zellij, herdr) keep using the link. If it goes stale,
+# for example the newest login closed while an older one is still open, run
+# this to point it at the newest agent that still answers.
+set -euo pipefail
+
+link="$HOME/.ssh/agent.sock"
+
+agent_answers() {
+    # ssh-add exits 2 when it can't reach an agent; 0 or 1 means one answered.
+    local rc=0
+    SSH_AUTH_SOCK="$1" ssh-add -l >/dev/null 2>&1 || rc=$?
+    [[ $rc -ne 2 ]]
+}
+
+# Forwarded agent sockets: ~/.ssh/agent on OpenSSH 10.1 and later,
+# /tmp/ssh-* on older versions and macOS.
+shopt -s nullglob
+forwarded=("$HOME"/.ssh/agent/s.* /tmp/ssh-*/agent.*)
+
+target=""
+if [[ ${#forwarded[@]} -gt 0 ]]; then
+    # Newest first, so the most recent SSH login wins.
+    while IFS= read -r sock; do
+        if [[ -S "$sock" && -O "$sock" ]] && agent_answers "$sock"; then
+            target="$sock"
+            break
+        fi
+    done < <(ls -t "${forwarded[@]}")
+fi
+
+if [[ -z "$target" ]]; then
+    echo "❌ No live forwarded SSH agent found." >&2
+    echo "   Reconnect with agent forwarding (ForwardAgent yes, or ssh -A), then run fix-ssh-agent again." >&2
+    exit 1
+fi
+
+if [[ "$(readlink "$link" 2>/dev/null)" == "$target" ]]; then
+    echo "✅ $link already points at a live agent ($target)"
+else
+    ln -sfn "$target" "$link"
+    echo "✅ $link now points at $target"
+fi
+
+if [[ "${SSH_AUTH_SOCK:-}" != "$link" ]]; then
+    echo "ℹ️  This shell uses SSH_AUTH_SOCK=${SSH_AUTH_SOCK:-<unset>}, not the link."
+    echo "   Open a new shell, or run: set -gx SSH_AUTH_SOCK $link"
+fi
