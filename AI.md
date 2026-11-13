@@ -251,11 +251,15 @@ Change `MISE_MIN_VERSION` in `dotfiles-lib.sh` when the config starts relying on
 - **Omarchy's mise tools**: on every update mise looks up versions for Omarchy's install-on-first-use tools, and a slow site (for example `cursor.com`) delays it by up to 30 seconds. `disable_tools` in `[settings]` would stop that for tools you don't use
 - **Some macOS settings are manual** (default browser, recent items, Finder sidebar, Spotlight related content, Caps Lock per keyboard); the README lists them
 
-### Review backlog (2026-10-03)
-Found in a project review and deliberately deferred.
-- **Daily update check blocks the prompt**: `dotfiles-updates-notify` runs `git fetch` synchronously on interactive shell start; when offline every new shell waits on it again. Write the date regardless, or check in the background
-- **Shell startup spawns bash helpers**: `config.fish` calls `dotfiles-is-*` and `dotfiles-has-command`, each a bash process. Fish builtins (`test (uname) = Darwin`, `type -q`) avoid that
-- **`dotfiles-check-updates` edge cases**: reports "updates available (0 commits behind)" when local is ahead; with no upstream, `git rev-parse @{u}` fails under `set -e` before the friendly error
+### Backlog
+Found in a project review (2026-10-03); fixes proposed 2026-11-13, not yet approved or started.
+
+- **Daily update check can block new shells.** The first interactive shell each day runs `git fetch` in the foreground (`dotfiles-updates-notify` → `dotfiles-check-updates`) and records the day only if the fetch succeeds, so offline or on a slow network every new shell waits again. Machines whose remote is SSH (penny, the Mac, WSL) also need the key to fetch, which can mean a 1Password prompt just from opening a terminal. Proposed fix:
+  - Fetch in the background, silently, at most once a day, with a short timeout, so the prompt never waits
+  - Work out "updates available" from the last completed fetch, which is instant
+  - A migration that switches existing machines' `origin` from `git@github.com:davidwinter/dotfiles` to HTTPS for pulls (pushes stay on SSH through `pushInsteadOf`), matching new installs. A migration fits because mise can't declare a git remote
+- **Fish startup is slower than it needs to be.** On penny a new fish shell takes about 120ms (4ms with no config): about 9 calls to `dotfiles-is-*` / `dotfiles-has-command` cost around 5ms each because each starts bash, and `dotfiles-mise-env` about 23ms. Proposed fix: in `config.fish`, use fish built-ins (`type -q`, `uname`, a `/proc/version` check for WSL) instead of the helpers, which scripts keep using; and only compute `MISE_ENV` when it isn't already set, so shells started from another shell inherit it. Expected: about 60ms; measure before and after
+- **`dotfiles-check-updates` edge cases.** When local is ahead of the remote it reports "updates available (0 commits behind)"; compare the behind count instead, and optionally mention unpushed commits. With no upstream branch, `git rev-parse "@{u}"` fails under `set -e` before the friendly error prints; handle that case
 
 ## Testing
 
