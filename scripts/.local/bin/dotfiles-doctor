@@ -55,11 +55,7 @@ fi
 
 echo
 echo "📃 Dotfiles:"
-if check_dotfiles_linked; then
-    echo "   ✅ All linked"
-else
-    echo "   ❌ Not linked (run: dotfiles-update)"
-fi
+check_dotfiles_linked || echo "   💡 To link them, run: dotfiles-update"
 
 echo
 echo "🐟 Fish Shell:"

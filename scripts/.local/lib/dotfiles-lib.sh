@@ -86,18 +86,40 @@ check_bootstrap_packages() {
     ! echo "$status" | grep -q ' missing'
 }
 
-# Prints any dotfile link that isn't in place; returns 1 if there are any.
-# Each verbose status row ends with the entry's state ("applied" when it's in
-# place). Groups list their target as ~, so name their source instead.
+# Prints one line per dotfile group (by package name), then per machine-specific
+# file (with its module), and for a group that isn't fully linked, each file
+# that isn't. Returns 1 if anything isn't in place. Columns in mise's verbose
+# status are separated by two or more spaces: target, mode, source, config
+# file, state.
 check_dotfiles_linked() {
-    local problems
-    problems="$(dotfiles_mise dot status --verbose 2>&1 | awk '
-        $2 ~ /^(symlink|symlink-each|copy|template)$/ && $NF != "applied" {
-            print "      " ($2 == "symlink-each" ? $3 : $1) " (" $NF ")"
-        }')"
-    [[ -z "$problems" ]] && return 0
-    echo "$problems"
-    return 1
+    local ok=0 target mode source config state src file rel
+    while IFS=$'\t' read -r target mode source config state; do
+        src="${source/#\~/$HOME}"
+        if [[ "$mode" == "symlink-each" ]]; then
+            if [[ "$state" == "applied" ]]; then
+                echo "   ✅ $(basename "$src")"
+                continue
+            fi
+            echo "   ❌ $(basename "$src") ($state)"
+            while IFS= read -r file; do
+                rel="${file#$src/}"
+                if [[ "$(realpath "$HOME/$rel" 2>/dev/null)" != "$(realpath "$file")" ]]; then
+                    echo "      not linked: ~/$rel"
+                fi
+            done < <(find "$src" -type f ! -name '.gitignore')
+        else
+            config="$(basename "$config" .toml)"
+            if [[ "$state" == "applied" ]]; then
+                echo "   ✅ $target (${config#config.})"
+            else
+                echo "   ❌ $target (${config#config.}, $state)"
+            fi
+        fi
+        [[ "$state" == "applied" ]] || ok=1
+    done < <(dotfiles_mise dot status --verbose 2>/dev/null \
+        | awk -F '  +' -v OFS='\t' 'NF >= 5 && $2 ~ /^(symlink|symlink-each|copy|template)$/ { print $1, $2, $3, $4, $NF }' \
+        | sort -s -t $'\t' -k2,2r)
+    return "$ok"
 }
 
 # Old dotfile-update scripts call these after pulling, and the first update

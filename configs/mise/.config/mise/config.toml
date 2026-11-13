@@ -101,6 +101,7 @@ herdr = "latest"
 # macOS apps (btop comes from [tools] on Linux)
 "brew:btop" = { os = "macos" }
 "brew-cask:firefox" = { os = "macos" }
+"brew-cask:ghostty" = { os = "macos" }
 
 # macOS preferences, applied by mise bootstrap (Linux skips them). Some only
 # take effect after `killall Dock Finder SystemUIServer` or logging out; dark
