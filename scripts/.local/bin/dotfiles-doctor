@@ -81,4 +81,4 @@ else
 fi
 
 echo
-echo "💡 To fix issues, run: dotfiles-install"
+echo "💡 To fix issues, run: dotfiles-update"

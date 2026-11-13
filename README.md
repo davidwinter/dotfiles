@@ -100,7 +100,7 @@ To install on a remote machine you SSH into (cloud servers, etc.) where you don'
    ```
 3. SSH into the remote, follow the "Before you install" steps for its platform (skipping 1Password), and run the install command.
 
-The installer detects the SSH session and skips 1Password setup and the `git-1password` config. Git then signs with `ssh-keygen` through your forwarded agent, so 1Password on your local machine prompts on each commit.
+Without the 1Password app on the remote, the dotfiles leave out its 1Password setup and git signs with `ssh-keygen` through your forwarded agent, so 1Password on your local machine prompts on each commit.
 
 ### Using a desktop machine over SSH
 
@@ -108,22 +108,21 @@ You can also SSH into a machine that has its own 1Password, such as a Linux desk
 
 Once you disconnect, the same terminals go back to the machine's own 1Password, so prompts appear there when you're back at it. If the forwarded agent ever stops working while you're still connected (for example after closing the newer of two SSH connections), open a new SSH connection to repoint it.
 
-## Helper Scripts
+## Helper scripts
 
 The dotfiles include helper scripts for common tasks:
 
-### Management Scripts
-- `dotfiles-install` - Install and configure dotfiles
-- `dotfiles-update` - Pull latest changes from git and run migrations
+### Management scripts
+- `dotfiles-update` - Pull the latest changes, run any migrations, and apply the mise config (packages, links, preferences, tools)
 - `dotfiles-check-updates` - Check for updates without applying
 - `dotfiles-doctor` - Check dotfiles health and report any issues
 
-### Migration Scripts
+### Migration scripts
 - `dotfiles-add-migration` - Create a new migration file
 - `dotfiles-migrate` - Run pending migrations
 - `dotfiles-migrations-status` - Check if there are pending migrations
 
-### Detection Helpers
+### Detection helpers
 - `dotfiles-is-macos` - Check if running on macOS
 - `dotfiles-is-linux` - Check if running on Linux
 - `dotfiles-is-wsl` - Check if running on WSL
@@ -196,7 +195,7 @@ To check for updates without applying:
 dotfiles-check-updates
 ```
 
-## Health Check
+## Health check
 
 To check if your dotfiles are configured correctly:
 
@@ -212,20 +211,20 @@ This will report on:
 - Login shell (fish)
 - Migration status
 
-If issues are found, run `dotfiles-install` to fix them.
+If issues are found, run `dotfiles-update` to fix them. To rerun the full install on an existing machine, run the install command again; it reuses the existing clone.
 
 ## Migrations
 
 The dotfiles use a migration system to handle structural changes over time. Migrations are automatically run when you update your dotfiles.
 
-### How It Works
+### How it works
 
 - Migration files are stored in `migrations/` directory
 - Each migration is a bash script named with a Unix timestamp (e.g., `1705324800.sh`)
 - Applied migrations are tracked in `~/.local/state/dotfiles/migrations/`
 - Migrations run automatically when you run `dotfiles-update`
 
-### Creating a Migration
+### Creating a migration
 
 To create a new migration:
 
@@ -235,7 +234,9 @@ dotfiles-add-migration
 
 This creates a new migration file using the timestamp of your last git commit. Edit the file and add your migration logic (just plain bash code, no boilerplate needed).
 
-### Managing Migrations
+Before writing one, check whether the mise config can do it instead: to remove a file or link from every machine, add a `[dotfiles]` entry with `mode = "absent"`. AI.md lists the options.
+
+### Managing migrations
 
 Check migration status:
 
@@ -249,7 +250,7 @@ Manually run pending migrations:
 dotfiles-migrate
 ```
 
-### Migration Behavior
+### Migration behavior
 
 - Migrations run in chronological order (by timestamp)
 - If a migration fails, you'll be prompted to skip it or stop
@@ -257,7 +258,7 @@ dotfiles-migrate
 - Migration state is stored in `~/.local/state/dotfiles/migrations/`
 - On fresh installs, all existing migrations are automatically marked as applied
 
-## Supported Platforms
+## Supported platforms
 
 - macOS (Apple Silicon and Intel)
 - Arch Linux, including Omarchy

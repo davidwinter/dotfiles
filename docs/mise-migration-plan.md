@@ -2,7 +2,7 @@
 
 A phased plan to hand machine setup to `mise bootstrap` and mise dotfiles, across Omarchy, macOS, WSL and Ubuntu. Every phase reaches machines through `dotfiles-update`, works on a machine that has skipped earlier phases, and can be rolled back by reverting its commits.
 
-Status: phases 0 to 4 done (verified on penny and the Mac); phase 5 in progress.
+Status: phases 0 to 5 done (verified on penny, the Mac and WSL); phase 6 partly done, the rest waits for sevenofnine's first update.
 
 ## Where it ends up
 
@@ -29,7 +29,7 @@ Mise does the setup. The repo keeps a small set of scripts: the machine detectio
 | Mac | `dotfiles-macos,dotfiles-1password` | Homebrew; version to check |
 | WSL | `dotfiles-ubuntu,dotfiles-wsl` | mise apt repo; version to check |
 | Ubuntu server | `dotfiles-ubuntu` | mise apt repo |
-| sevenofnine | to check on its first update | to check |
+| sevenofnine (Omarchy) | `dotfiles-arch,dotfiles-omarchy`, plus `dotfiles-1password` if 1Password is installed | Omarchy's `mise-bin`; check it's 2026.11.6 or newer before updating |
 
 The `dotfiles-1password` module depends only on whether 1Password is installed, not on how you're connected. On penny, which is used both at the desk and over SSH, ssh and `git-ssh-sign` already choose per use: the forwarded agent while connected, penny's own 1Password otherwise.
 
@@ -177,19 +177,27 @@ Exit check: signed commits work on each machine, at the desk and over SSH.
 
 ### Phase 6: retire the old machinery
 
-Remove what mise now does, once every machine has run phases 0 to 5.
+Remove what mise now does. Split in two, because sevenofnine hasn't run any of the earlier phases yet.
 
-Work:
+Decisions:
 
-- `bootstrap` clones the repo, sets `MISE_ENV` and runs `mise bootstrap` against the repo's mise config.
-- `dotfiles-update` becomes pull, migrate, `mise bootstrap`.
-- Rewrite `README.md` and `AI.md` for the new layout.
+- **Keep `dotfiles-doctor`.** `mise bootstrap status --missing` always fails on Omarchy (Omarchy's install-on-first-use tools count as missing), is noisy, and doesn't name a missing file in a group. The doctor is a readable view of mise's status plus 1Password and git checks.
+- **Fold `dotfiles-install` into `bootstrap`** (option A). mise's own `mise bootstrap --from` was considered: it can't select modules on the first run, links `~/.config/mise` as a whole directory (clashing with the `mise` group), and would need the migration runner to treat a first run as "mark everything applied". Revisit if mise makes that easier.
+- **Keep the migration runner**, but declare removals in the mise config first (see AI.md).
 
-Migrations: mise's `--prune-dotfiles` removes links to retired scripts, since a group deployed them. A migration covers anything it misses.
+Done now:
 
-Removes: `dotfiles-install`, `dotfiles-doctor`, most of `dotfiles-lib.sh`, the `stow_configs_for_host` and `install_mise_tools` stand-ins, and `stow` from the packages.
+- `bootstrap` checks mise, marks existing migrations applied on a new machine (before mise runs), then runs `apply_mise_bootstrap`. `dotfiles-install` is removed; an `absent` entry in `config.toml` removes its old link.
+- `dotfiles-lib.sh` holds only what bootstrap, update and doctor use.
+- `README.md` and `AI.md` describe the mise setup.
 
-Exit check: a fresh install from the README works on each platform, and `mise bootstrap status --missing` is clean on every machine.
+After sevenofnine has updated (run `dotfiles-update` twice, then `dotfiles-doctor`):
+
+- Remove the `stow_configs_for_host` and `install_mise_tools` stand-ins: its first update runs its old update script, which calls them.
+- Remove `stow` from the packages: its pending migrations call stow.
+- Optionally delete the old migrations, which no machine needs once sevenofnine has run them, and the `absent` entry for `dotfiles-install`.
+
+Exit check: a fresh install works on each platform, and `dotfiles-doctor` is clean on every machine.
 
 ## Risks
 

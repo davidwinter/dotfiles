@@ -14,6 +14,11 @@ dotfiles.relative_symlinks = true
 [bootstrap]
 dotfile_groups = ["git", "ssh", "fish", "starship", "hushlogin", "nano", "vim", "mise", "claude", "zed", "scripts"]
 
+# Removed files: links to scripts deleted from the repo. Delete each entry
+# once every machine has updated past it.
+[dotfiles]
+"~/.local/bin/dotfiles-install" = { mode = "absent" }
+
 [dotfile_groups.git]
 root = "git"
 mode = "symlink-each"

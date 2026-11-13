@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared library for dotfiles install and doctor scripts
+# Shared library for bootstrap, dotfiles-update and dotfiles-doctor
 
 # === mise ===
 

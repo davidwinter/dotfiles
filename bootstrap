@@ -28,9 +28,47 @@ else
     echo "✅ Repository cloned successfully"
 fi
 
+export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
+source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
+
 echo
-echo "🚀 Starting installation..."
+echo "🧰 mise:"
 echo
 
-export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
-exec dotfiles-install
+# Check before changing anything: mise applies the whole setup.
+check_mise_ready || exit 1
+echo "   ✅ mise $(get_mise_version)"
+
+echo
+echo "📋 Migrations:"
+echo
+
+# A new machine starts from the current config, so it never needs the
+# migrations that moved older machines here. Mark them applied before mise
+# runs, so a later dotfiles-update doesn't run them even if this install
+# stops partway. An existing install (state directory present) is left alone.
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/migrations"
+if [[ -d "$state_dir" ]]; then
+    echo "   ℹ️  Existing installation: leaving migration state alone"
+else
+    mkdir -p "$state_dir"
+    for migration in "$DOTFILES_DIR/migrations"/*.sh; do
+        [[ -f "$migration" ]] && touch "$state_dir/$(basename "$migration")"
+    done
+    echo "   ✅ Marked existing migrations as applied"
+fi
+
+echo
+echo "🧰 Applying mise config (packages, dotfiles, preferences, tools):"
+echo
+
+# Uses the repo's copy of the mise config, so it works before anything is
+# linked. It installs packages, links the dotfiles, applies macOS
+# preferences, sets the login shell and installs tools.
+if ! apply_mise_bootstrap; then
+    echo "   Then run this install command again" >&2
+    exit 1
+fi
+
+echo
+echo "✅ Dotfiles installed. Open a new terminal, then run dotfiles-doctor to check."
