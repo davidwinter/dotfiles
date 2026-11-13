@@ -259,10 +259,11 @@ Found in a project review and deliberately deferred.
 
 ## Testing
 
-- No automated tests; changes are tested on real machines (penny: Omarchy; a Mac; WSL)
+- CI (`.github/workflows/ci.yml`) runs on every push: shellcheck at warning level on the scripts and migrations, `fish --no-execute` on the fish config, the helpers on Linux, and on macOS a run of the scripts, library and recent migrations under the system bash 3.2. Keep it green: fix new shellcheck warnings rather than lowering the level
+- Beyond CI, changes are tested on real machines (penny: Omarchy; a Mac; WSL)
 - Before changing setup, run `mise bootstrap --dry-run` and test risky changes in a throwaway home: `HOME`, `MISE_DATA_DIR`, `MISE_STATE_DIR` and `MISE_CACHE_DIR` pointed at a temporary directory (and `XDG_CONFIG_HOME` unset)
 - After a change: `dotfiles-update`, then `dotfiles-doctor`
-- Suggested CI: shellcheck and a `mise bootstrap --dry-run` in a fresh container
+- A possible CI addition: a mise config check (`mise bootstrap --dry-run` failing on unknown-key warnings)
 
 ## AI assistant guidelines
 

@@ -9,9 +9,10 @@ MISE_MIN_VERSION="2026.11.6"
 
 # True when version $1 is at least $2 (both year.month.patch).
 version_at_least() {
-    local IFS=.
-    local -a have=($1) need=($2)
+    local -a have need
     local i h n
+    IFS=. read -ra have <<< "$1"
+    IFS=. read -ra need <<< "$2"
     for i in 0 1 2; do
         h="${have[$i]:-0}"; h="${h%%[!0-9]*}"
         n="${need[$i]:-0}"; n="${n%%[!0-9]*}"
@@ -51,10 +52,10 @@ dotfiles_mise() {
         MISE_ENV="$(dotfiles-mise-env)" mise "$@"
 }
 
-# Applies the whole mise config: packages, dotfile links, macOS preferences
-# and tools. Extra arguments are passed on (e.g. --only packages).
+# Applies the whole mise config: packages, dotfile links, macOS preferences,
+# login shell and tools.
 apply_mise_bootstrap() {
-    if dotfiles_mise bootstrap --yes "$@"; then
+    if dotfiles_mise bootstrap --yes; then
         echo "   ✅ mise bootstrap applied"
     else
         echo "   ❌ mise bootstrap stopped - see the error above" >&2
@@ -153,7 +154,8 @@ check_migrations_applied() {
 
     for migration in "$DOTFILES_DIR/migrations"/*.sh; do
         [[ -f "$migration" ]] || continue
-        local migration_file=$(basename "$migration")
+        local migration_file
+        migration_file=$(basename "$migration")
         if [[ ! -f "$state_dir/$migration_file" && ! -f "$state_dir/skipped/$migration_file" ]]; then
             return 1
         fi

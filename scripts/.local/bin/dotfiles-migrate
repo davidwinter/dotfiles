@@ -27,7 +27,8 @@ prompt_skip() {
 
 run_migration() {
     local file="$1"
-    local filename=$(basename "$file")
+    local filename
+    filename=$(basename "$file")
 
     echo
     echo "Running migration: ${filename%.sh}"

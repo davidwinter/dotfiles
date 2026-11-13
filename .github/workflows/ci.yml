@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: shellcheck, fish syntax, Linux helpers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: shellcheck scripts
+        run: |
+          shellcheck --version | sed -n 2p
+          shellcheck -S warning bootstrap scripts/.local/bin/* scripts/.local/lib/dotfiles-lib.sh \
+            configs/git-1password/.local/bin/git-ssh-sign
+
+      # Migrations have no shebang. dotfiles-migrate runs each with
+      # `bash -euo pipefail`, so a failed cd already stops them (SC2164).
+      - name: shellcheck migrations
+        run: shellcheck -s bash -S warning -e SC2164 migrations/*.sh
+
+      - name: fish syntax
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fish
+          find configs -name '*.fish' -print0 | xargs -0 -n1 fish --no-execute
+
+      - name: helpers on Linux
+        run: |
+          export PATH="$PWD/scripts/.local/bin:$PATH"
+          dotfiles-is-linux
+          if dotfiles-is-macos; then exit 1; fi
+          echo "modules: $(dotfiles-mise-env)"
+          [[ "$(dotfiles-mise-env)" == dotfiles-ubuntu* ]]
+
+  macos-bash:
+    # macOS ships bash 3.2, and dotfiles-update runs these scripts there.
+    # Catches bash 4+ features (declare -A, mapfile, ...) and BSD/GNU
+    # differences that Linux CI can't.
+    name: macOS bash 3.2
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: use the system bash 3.2 for every script
+        run: |
+          mkdir -p "$RUNNER_TEMP/bash32"
+          ln -s /bin/bash "$RUNNER_TEMP/bash32/bash"
+          echo "$RUNNER_TEMP/bash32" >> "$GITHUB_PATH"
+          echo "$PWD/scripts/.local/bin" >> "$GITHUB_PATH"
+
+      - name: syntax
+        run: |
+          bash --version | head -1
+          [[ "$(bash -c 'echo ${BASH_VERSINFO[0]}')" == 3 ]]
+          for f in bootstrap scripts/.local/bin/* scripts/.local/lib/dotfiles-lib.sh \
+            configs/git-1password/.local/bin/git-ssh-sign migrations/*.sh; do
+            bash -n "$f"
+          done
+
+      - name: helpers
+        run: |
+          dotfiles-is-macos
+          if dotfiles-is-linux; then exit 1; fi
+          dotfiles-has-command git
+          echo "modules: $(dotfiles-mise-env)"
+          [[ "$(dotfiles-mise-env)" == dotfiles-macos* ]]
+
+      - name: library
+        run: |
+          bash -c '
+            set -euo pipefail
+            source scripts/.local/lib/dotfiles-lib.sh
+            version_at_least 2026.11.7 2026.11.6
+            version_at_least 2027.1.0 2026.11.6
+            if version_at_least 2026.9.9 2026.11.6; then exit 1; fi
+          '
+
+      # The mise-era migrations only act when their target exists, so they
+      # are safe to run on a clean runner, under bash 3.2 as on a real Mac.
+      - name: recent migrations
+        run: |
+          for m in migrations/1794573826.sh migrations/1794575081.sh; do
+            bash -euo pipefail "$m"
+          done

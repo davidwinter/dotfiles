@@ -22,7 +22,7 @@ if ! git fetch origin 2>/dev/null; then
 fi
 
 LOCAL=$(git rev-parse @)
-REMOTE=$(git rev-parse @{u} 2>/dev/null)
+REMOTE=$(git rev-parse "@{u}" 2>/dev/null)
 
 if [[ -z "$REMOTE" ]]; then
     echo "Error: Unable to fetch remote branch information" >&2
@@ -30,7 +30,7 @@ if [[ -z "$REMOTE" ]]; then
 fi
 
 if [[ "$LOCAL" != "$REMOTE" ]]; then
-    COMMITS_BEHIND=$(git rev-list --count HEAD..@{u} 2>/dev/null)
+    COMMITS_BEHIND=$(git rev-list --count "HEAD..@{u}" 2>/dev/null)
     echo "🔔 Dotfiles updates available! ($COMMITS_BEHIND commit(s) behind)"
     echo "   Run: dotfiles-update"
 fi
