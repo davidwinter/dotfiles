@@ -103,6 +103,11 @@ herdr = "latest"
 "brew-cask:firefox" = { os = "macos" }
 "brew-cask:ghostty" = { os = "macos" }
 
+# Mac App Store apps, by App Store ID. Needs the mas tool and you signed in to
+# the App Store. WireGuard's Mac app is only on the App Store (WireGuard LLC).
+"brew:mas" = { os = "macos" }
+"mas:1451685025" = { os = "macos" } # WireGuard
+
 # Login shell: mise adds fish to /etc/shells if needed and runs chsh only
 # when the login shell isn't fish already. It takes effect at the next login.
 [bootstrap.user]

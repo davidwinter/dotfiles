@@ -28,15 +28,32 @@ else
     echo "   ❌ Some are missing (run: dotfiles-update)"
 fi
 echo
-echo "🔑 1Password:"
-if dotfiles-has-1password; then
+if dotfiles-is-wsl; then
+    # 1Password runs on Windows: git signs with its op-ssh-sign-wsl (set in
+    # config-wsl) and ssh goes through Windows' ssh.exe and its agent.
+    echo "🔑 1Password (Windows):"
+    sign_program="$(git config --get gpg.ssh.program || true)"
+    if [[ -n "$sign_program" ]] && command -v "$sign_program" >/dev/null 2>&1; then
+        echo "   ✅ Signing tool: $sign_program"
+    else
+        echo "   ❌ Signing tool not found: ${sign_program:-gpg.ssh.program not set}"
+        echo "      Check the Windows username and 1Password path in configs/git-wsl/.config/git/config-wsl"
+    fi
+    if dotfiles-has-command ssh-add.exe && ssh-add.exe -l >/dev/null 2>&1; then
+        echo "   ✅ Windows SSH agent has keys (ssh-add.exe)"
+    else
+        echo "   ❌ Windows SSH agent not reachable or has no keys (is 1Password's SSH agent on in Windows?)"
+    fi
+elif dotfiles-has-1password; then
+    echo "🔑 1Password:"
     if check_1password_agent; then
         echo "   ✅ SSH agent socket"
     else
         echo "   ❌ SSH agent socket missing (is 1Password running with its SSH agent on?)"
     fi
 else
-    echo "   ℹ️  1Password app not installed here (signing uses a forwarded agent)"
+    echo "🔑 1Password:"
+    echo "   ℹ️  Not installed here. Commits are signed through the agent forwarded from the machine you connect from."
 fi
 
 echo
