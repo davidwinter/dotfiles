@@ -342,6 +342,23 @@ stow_configs_for_host() {
     return "$failed"
 }
 
+# === mise tools ===
+
+# Command-line tools (starship, eza, lazygit, ...) come from the linked mise
+# config. Installs any that are missing; never fails the caller.
+install_mise_tools() {
+    if ! dotfiles-has-command mise; then
+        echo "   ⚠️  mise not found - install it from https://mise.jdx.dev, then run: mise install" >&2
+        return 0
+    fi
+
+    if MISE_YES=1 mise install; then
+        echo "   ✅ mise tools installed"
+    else
+        echo "   ⚠️  mise install failed - run it again with: mise install" >&2
+    fi
+}
+
 # === 1Password ===
 
 check_1password_agent() {

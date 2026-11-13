@@ -256,7 +256,7 @@ To manually update:
 dotfiles-update
 ```
 
-This pulls the latest changes, runs any pending migrations, and links any config files added since you last updated.
+This pulls the latest changes, runs any pending migrations, links any config files added since you last updated, and installs any tools newly added to the mise config.
 
 Tools installed by mise update separately:
 

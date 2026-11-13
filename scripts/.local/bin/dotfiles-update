@@ -40,4 +40,10 @@ source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
 stow_configs_for_host || echo "   ⚠️  One or more configs failed to stow" >&2
 
 echo
+echo "🧰 Installing any missing mise tools..."
+echo
+
+install_mise_tools
+
+echo
 echo "✅ Dotfiles updated successfully"
