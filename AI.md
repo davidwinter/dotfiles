@@ -252,11 +252,9 @@ Change `MISE_MIN_VERSION` in `dotfiles-lib.sh` when the config starts relying on
 - **Some macOS settings are manual** (default browser, recent items, Finder sidebar, Spotlight related content, Caps Lock per keyboard); the README lists them
 
 ### Backlog
-Found in a project review (2026-10-03); fixes proposed 2026-11-13, not yet approved or started.
-
-- **Daily update check can block new shells.** The first interactive shell each day runs `git fetch` in the foreground (`dotfiles-updates-notify` → `dotfiles-check-updates`) and records the day only if the fetch succeeds, so offline or on a slow network every new shell waits again. The 1Password prompts this used to cause are fixed: migration `1794585756.sh` switched existing machines to pulling over HTTPS (pushes stay on SSH), matching new installs. Moving the fetch to the background was considered and declined for now; a smaller option is to record the day before fetching and give the fetch a short limit (`-c http.lowSpeedLimit=1000 -c http.lowSpeedTime=10`, `GIT_TERMINAL_PROMPT=0`)
-- **Fish startup is slower than it needs to be.** On penny a new fish shell takes about 120ms (4ms with no config): about 9 calls to `dotfiles-is-*` / `dotfiles-has-command` cost around 5ms each because each starts bash, and `dotfiles-mise-env` about 23ms. Proposed fix: in `config.fish`, use fish built-ins (`type -q`, `uname`, a `/proc/version` check for WSL) instead of the helpers, which scripts keep using; and only compute `MISE_ENV` when it isn't already set, so shells started from another shell inherit it. Expected: about 60ms; measure before and after
-- **`dotfiles-check-updates` edge cases.** When local is ahead of the remote it reports "updates available (0 commits behind)"; compare the behind count instead, and optionally mention unpushed commits. With no upstream branch, `git rev-parse "@{u}"` fails under `set -e` before the friendly error prints; handle that case
+From a project review (2026-10-03). Done: pulling over HTTPS (no 1Password prompt to fetch), the daily check recording the day before it fetches and giving up on a stalled fetch, and `dotfiles-check-updates` comparing behind and ahead counts and handling a branch with no upstream. Considered and declined for now:
+- **Fetching in the background**, so the first shell of the day never waits on `git fetch`. Offline, the check now fails at once and doesn't repeat until the next day, which covers most of the cost.
+- **Fish built-ins instead of the helpers in `config.fish`** (`command -q`, `uname`, a `/proc/version` check, and computing `MISE_ENV` only when unset). It would cut shell startup on penny from about 120ms to about 60ms, at the cost of the macOS and WSL checks living in two places.
 
 ## Testing
 

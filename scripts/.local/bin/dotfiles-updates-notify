@@ -13,5 +13,8 @@ else
 fi
 
 if [[ "$LAST_CHECK" != "$TODAY" ]]; then
-    dotfiles-check-updates && echo "$TODAY" > "$CACHE_FILE"
+    # Record the day first, so a failed check (offline, say) doesn't repeat in
+    # every new shell. Run dotfiles-check-updates to check again by hand.
+    echo "$TODAY" > "$CACHE_FILE"
+    dotfiles-check-updates || true
 fi

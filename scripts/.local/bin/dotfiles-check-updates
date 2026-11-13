@@ -16,21 +16,27 @@ if [[ -n "$UNTRACKED" ]]; then
     echo "$UNTRACKED" | sed 's/^/  /'
 fi
 
-if ! git fetch origin 2>/dev/null; then
-    echo "Error: Unable to fetch from remote repository" >&2
+# Never prompt for credentials, and give up on a stalled transfer rather than
+# hold up the shell that runs this check.
+if ! GIT_TERMINAL_PROMPT=0 git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=10 \
+        fetch --quiet origin 2>/dev/null; then
+    echo "⚠ Couldn't check for dotfiles updates (offline?)" >&2
     exit 1
 fi
 
-LOCAL=$(git rev-parse @)
-REMOTE=$(git rev-parse "@{u}" 2>/dev/null)
-
-if [[ -z "$REMOTE" ]]; then
-    echo "Error: Unable to fetch remote branch information" >&2
+if ! git rev-parse --verify --quiet "@{u}" >/dev/null; then
+    branch="$(git branch --show-current)"
+    echo "⚠ Couldn't check for dotfiles updates: ${branch:-detached HEAD} has no upstream branch" >&2
     exit 1
 fi
 
-if [[ "$LOCAL" != "$REMOTE" ]]; then
-    COMMITS_BEHIND=$(git rev-list --count "HEAD..@{u}" 2>/dev/null)
-    echo "🔔 Dotfiles updates available! ($COMMITS_BEHIND commit(s) behind)"
+read -r AHEAD BEHIND < <(git rev-list --left-right --count "HEAD...@{u}")
+
+if (( BEHIND > 0 )); then
+    echo "🔔 Dotfiles updates available! ($BEHIND commit(s) behind)"
     echo "   Run: dotfiles-update"
+fi
+
+if (( AHEAD > 0 )); then
+    echo "⚠ $AHEAD dotfiles commit(s) not pushed yet"
 fi
