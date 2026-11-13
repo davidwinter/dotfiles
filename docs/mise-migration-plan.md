@@ -29,6 +29,7 @@ Mise does the setup. The repo keeps a small set of scripts: the machine detectio
 | Mac | `dotfiles-macos,dotfiles-1password` | Homebrew; version to check |
 | WSL | `dotfiles-ubuntu,dotfiles-wsl` | mise apt repo; version to check |
 | Ubuntu server | `dotfiles-ubuntu` | mise apt repo |
+| sevenofnine | to check on its first update | to check |
 
 The `dotfiles-1password` module depends only on whether 1Password is installed, not on how you're connected. On penny, which is used both at the desk and over SSH, ssh and `git-ssh-sign` already choose per use: the forwarded agent while connected, penny's own 1Password otherwise.
 
@@ -54,6 +55,7 @@ Machines update at different times, and one might skip several phases in a singl
 5. **An old mise stops the update, not the machine.** `MISE_MIN_VERSION` in `dotfiles-lib.sh` sets the oldest supported mise. If a machine's mise is missing or older, `dotfiles-update` stops before running migrations or changing anything, and says which version is needed. Raise it when the config starts relying on a newer mise feature. (mise's own `min_version` setting isn't used, because its warning appears on every mise command, including every new shell.)
 6. **Links move from stow to mise without being recreated.** Mise's relative links match stow's, so mise treats existing stow links as already applied (tested). Moving a package from stow to mise is a config change only, and stow can take the links back if a phase is reverted.
 7. **Roll out one machine at a time.** penny first, then the Mac, then WSL. Run `mise bootstrap --dry-run` before the first update of each phase on each machine. Revert the phase's commits to roll back.
+8. **Declare removals before writing migrations.** A `[dotfiles]` entry with `mode = "absent"`, `--prune-dotfiles`, `mise bootstrap services remove` or a package declared absent removes something on every machine at its next update. Use a migration only for what the config can't express. See "Migrations" in AI.md.
 
 ## Decisions
 

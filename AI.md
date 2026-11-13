@@ -547,8 +547,20 @@ Total: 3 (2 applied, 0 skipped, 1 pending)
 - Changing config values (just update the file)
 - Adding files, packages, dotfile groups or macOS preferences (mise applies them on the next update)
 
-**When you MUST use a migration:**
-- Removing something mise created or used to create, such as a link to a deleted file or a LaunchAgent; mise doesn't remove what a config no longer declares
+**Prefer declaring a removal in the mise config over writing a migration.** Mise doesn't remove what a config stops declaring, but it can remove things you declare as gone, on every machine, on its next `dotfiles-update`:
+- A file or link: a `[dotfiles]` entry with `mode = "absent"`, optionally limited to one OS with `variants = [{ os = "macos" }]` (machines matching no variant skip the entry):
+  ```toml
+  [dotfiles]
+  "~/.config/old-tool/config" = { mode = "absent" }
+  ```
+- Links to files deleted from a dotfile group: `mise bootstrap --prune-dotfiles` (or `mise dot apply --prune`) removes files a group deployed that no entry deploys now.
+- A LaunchAgent mise created: `mise bootstrap services remove <name>`. Deleting its declaration alone leaves it loaded.
+- A package: an entry declared absent in `[bootstrap.packages]` (`apply` removes what's declared absent).
+
+Like a migration, a removal entry only needs to stay until every machine has updated past it; then delete it from the config.
+
+**When you still need a migration:**
+- Removing something the config can't express, such as a leftover from the old stow-era setup, or something outside your home directory that mise didn't create
 - Any one-off structural change mise can't converge by itself
 - Migrations must not rely on `dotfiles-*` commands, which later phases may change or remove; use plain commands
 
