@@ -58,10 +58,3 @@ ShowSeconds = true
 # the update may need Full Disk Access to write it.
 [bootstrap.macos.defaults."com.apple.universalaccess"]
 closeViewScrollWheelToggle = true
-
-# Caps Lock acts as Escape on every keyboard. hidutil's mapping lasts until
-# restart, so a LaunchAgent sets it again at each login.
-[bootstrap.macos.launchd.agents.caps-lock-escape]
-program = "/usr/bin/hidutil"
-args = ["property", "--set", '{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc":0x700000039,"HIDKeyboardModifierMappingDst":0x700000029}]}']
-run_at_load = true

@@ -90,8 +90,7 @@ Work:
 - Add preferences to the shared config under `[bootstrap.macos.defaults]`, or mise's Dock, Finder, keyboard and trackpad sections. Linux machines skip them.
 - Check them on the Mac with `mise bootstrap macos defaults status`.
 - GUI apps as Homebrew casks in `[bootstrap.packages]` with `os = "macos"`, after checking each cask downloads from the vendor (`brew info --cask <name>`). Mac App Store apps can use `mas:<app id>`. Firefox is installed this way (verified on the Mac).
-- Preferences with no dependable command-line setting (default browser, Apple menu recent items, Finder sidebar Recents, Spotlight related content) are listed in the README as one-off manual steps.
-- Caps Lock as Escape is a LaunchAgent (`[bootstrap.macos.launchd.agents]`) that runs `hidutil` at login.
+- Preferences with no dependable command-line setting (default browser, Apple menu recent items, Finder sidebar Recents, Spotlight related content, and Caps Lock as Escape, which macOS keeps per keyboard) are listed in the README as one-off manual steps.
 
 Migrations: none.
 

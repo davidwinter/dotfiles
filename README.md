@@ -26,8 +26,9 @@ After installing, a few macOS settings have no dependable command-line setting, 
 - **Recent items:** System Settings → Control Centre → "Recent documents, applications and servers" → None. This empties the Apple menu's Recent Items, and Finder's Go → Recent Folders.
 - **Finder sidebar:** Finder → Settings → Sidebar, untick Recents.
 - **Spotlight:** System Settings → Spotlight, turn off "Show related content".
+- **Caps Lock as Escape:** System Settings → Keyboard → Keyboard Shortcuts → Modifier Keys, set Caps Lock to Escape. macOS keeps this per keyboard, so repeat it for each external keyboard.
 
-The dotfiles set the rest of the macOS preferences (Dock, dark mode, Finder, clock, Caps Lock as Escape and so on) in `configs/mise/.config/mise/config.toml`. Some take effect only after you log out and back in.
+The dotfiles set the rest of the macOS preferences (Dock, dark mode, Finder, clock and so on) in `configs/mise/.config/mise/config.toml`. Some take effect only after you log out and back in.
 
 ### Arch Linux and Omarchy
 
