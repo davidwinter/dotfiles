@@ -1,13 +1,52 @@
 # dotfiles
 
-## Dependencies
+## Before you install
 
-- git
-- jq
-- curl
-- 1Password (recommended, setup instructions below)
+The installer needs `git`, `jq` and `curl`, uses your system package manager (Homebrew, apt or pacman) to install the rest, and expects [mise](https://mise.jdx.dev) for command-line tools. 1Password provides SSH keys and commit signing on machines you use directly.
 
-## Quick Start
+### 1Password (all desktop machines)
+
+1. Install 1Password and sign in.
+2. Open Settings → Developer and turn on "Use the SSH Agent". Opt into displaying key names if asked.
+3. When 1Password offers to update `~/.ssh/config`, decline. The dotfiles manage that file.
+4. Add your SSH public key to your GitHub account. The installer switches the repo's remote from HTTPS to SSH, so pushing and pulling use this key.
+
+On WSL, install 1Password for Windows and turn on its SSH agent there instead.
+
+### macOS
+
+1. Set up 1Password as above.
+2. Install [Homebrew](https://brew.sh). It installs the Xcode command line tools for you, which include `git`, so there's no need to install those separately. When it finishes, run the `eval "$(/opt/homebrew/bin/brew shellenv)"` line it prints so `brew` works in the current terminal.
+3. Install mise: `brew install mise`
+4. Check `jq --version` works. macOS 15 and later include it; on older versions run `brew install jq`.
+
+### Arch Linux and Omarchy
+
+A standard Omarchy install already includes `git`, `jq`, mise and 1Password, so only the 1Password setup above is needed.
+
+On plain Arch:
+
+```bash
+sudo pacman -S --needed git jq curl mise
+```
+
+Then install 1Password and set it up as above.
+
+### Ubuntu
+
+```bash
+sudo apt install git jq curl
+```
+
+Install mise using [its installation guide](https://mise.jdx.dev/installing-mise.html) (the apt repository keeps it up to date). On a desktop, install 1Password and set it up as above.
+
+### WSL
+
+Follow the Ubuntu steps inside WSL, and set up 1Password for Windows as above. Git in WSL uses Windows' `ssh.exe` and 1Password's `op-ssh-sign-wsl`, so 1Password on Windows handles keys and signing.
+
+`configs/git-wsl/.config/git/config-wsl` sets the path to `op-ssh-sign-wsl`, which includes the Windows username (`DavidWinter`). If you fork these dotfiles, change it to yours.
+
+## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/davidwinter/dotfiles/main/bootstrap | bash
@@ -19,46 +58,46 @@ Or with a custom repository:
 curl -fsSL https://raw.githubusercontent.com/davidwinter/dotfiles/main/bootstrap | bash -s -- youruser/dotfiles
 ```
 
-## Remote / Headless Install
+The installer asks for your password to install packages, link 1Password's signing helper and make fish your login shell. If a config file it manages already exists (for example `~/.gitconfig` or `~/.ssh/config`), it asks whether to back it up, delete it or skip that package.
+
+Then:
+
+1. Open a new terminal, which starts fish.
+2. Run `dotfiles-doctor` to check everything is in place.
+
+The first time you push or pull over SSH, ssh asks you to confirm GitHub's host key and 1Password asks you to approve using your key.
+
+## What it does
+
+1. Clones the repo to `~/dotfiles` over HTTPS.
+2. Installs packages with Homebrew, apt or pacman: GNU Stow, fish, a JetBrains Mono Nerd Font, and btop on macOS. The list lives in `dotfiles.json` and `system/core-packages.json`.
+3. Links 1Password's SSH agent socket (macOS) and its `op-ssh-sign` helper into `/usr/local/bin`. Skipped when installing over SSH.
+4. Switches the repo's git remote from HTTPS to SSH.
+5. Links the config files into your home directory with GNU Stow.
+6. Installs the command-line tools in the mise config with `mise install`.
+7. Adds fish to `/etc/shells` and makes it your login shell.
+
+Command-line tools such as starship, eza, lazygit, node and the GitHub CLI are defined in the mise config (`configs/mise`), not in `dotfiles.json`.
+
+## Remote / headless install
 
 To install on a remote machine you SSH into (cloud servers, etc.) where you don't want 1Password installed directly:
 
-1. On your **local** machine, ensure 1Password's "Use the SSH Agent" is enabled (you already need this for normal use).
+1. On your **local** machine, make sure 1Password's SSH agent is turned on (you already need this for normal use).
 2. On your **local** machine, add `ForwardAgent yes` for the remote host in `~/.ssh/config`:
    ```
    Host my-cloud-box
      ForwardAgent yes
    ```
-3. SSH into the remote and run the standard one‑liner.
+3. SSH into the remote, follow the "Before you install" steps for its platform (skipping 1Password), and run the install command.
 
-The installer detects the SSH session via `$SSH_CONNECTION` and:
-- Skips 1Password agent/op-ssh-sign setup.
-- Skips the `git-1password` config override (which would point at the missing `op-ssh-sign` binary).
-- Git signing falls back to native `ssh-keygen`, which signs via the forwarded SSH agent — so your 1Password app on your local machine prompts for biometrics on each commit.
+The installer detects the SSH session and skips 1Password setup and the `git-1password` config. Git then signs with `ssh-keygen` through your forwarded agent, so 1Password on your local machine prompts on each commit.
 
-A machine installed *locally* keeps the `git-1password` override, but it points `gpg.ssh.program` at the `git-ssh-sign` wrapper rather than `op-ssh-sign` directly. When you later SSH into that machine with a forwarded agent, the wrapper signs via `ssh-keygen` through the forwarded agent (prompting on your local machine) instead of popping 1Password on the remote box. Locally it still signs via `op-ssh-sign` as before.
+### Using a desktop machine over SSH
 
-## 1Password Setup
+You can also SSH into a machine that has its own 1Password, such as a Linux desktop. While you're connected with agent forwarding, fish keeps `~/.ssh/agent.sock` pointing at your forwarded agent, and both `ssh` and git commit signing use it from every terminal on that machine. That includes tmux, zellij and herdr terminals started before you connected, so prompts appear on the machine you connected from.
 
-The dotfiles system uses 1Password for SSH key management and git commit signing.
-
-### Prerequisites
-
-1. Install 1Password
-2. Open 1Password Settings → Developer
-3. Enable "Use the SSH Agent"
-4. Opt into displaying key names if prompted
-5. When prompted, do not update the local `~/.ssh/config` file (dotfiles handles this)
-6. **Add your SSH public key to GitHub** - The installer will switch the git remote from HTTPS to SSH, so you need your 1Password-managed SSH key added to your GitHub account
-
-## What It Does
-
-1. Clones your dotfiles to `~/dotfiles` (via HTTPS)
-2. Installs required packages (stow, fish, starship, mise, eza, lazygit, lazydocker)
-3. Sets up 1Password SSH agent integration
-4. Switches git remote from HTTPS to SSH (for authenticated push/pull)
-5. Symlinks configuration files using GNU Stow
-6. Makes Fish your default shell
+Once you disconnect, the same terminals go back to the machine's own 1Password, so prompts appear there when you're back at it. If the forwarded agent ever stops working while you're still connected (for example after closing the newer of two SSH connections), open a new SSH connection to repoint it.
 
 ## Helper Scripts
 
@@ -160,16 +199,12 @@ For packages that have different names on different platforms:
 
 ### Supported Platform Identifiers
 
-- **`macos`** - macOS (any version)
-- **`linux`** - Any Linux distribution
-- **`wsl`** - Windows Subsystem for Linux
-- **`arch`** - Arch Linux
-- **`ubuntu`** - Ubuntu
-- **`debian`** - Debian
-- **`fedora`** - Fedora
-- **`rhel`** - Red Hat Enterprise Linux
-- **`centos`** - CentOS
-- **`alpine`** - Alpine Linux
+- **`macos`** - macOS
+- **`arch`** - Arch Linux, and distributions based on it such as Omarchy
+- **`ubuntu`** - Ubuntu, and distributions based on it such as Pop!_OS
+- **`linux`** - In the object form of platform-specific package names, a fallback name for any Linux platform without its own entry
+
+Distributions based on Arch or Ubuntu are detected through `ID_LIKE` in `/etc/os-release`. Other distributions report their own `ID` (for example `debian` or `fedora`), but the installer only knows how to install packages with Homebrew, apt and pacman. WSL is a trait, not a platform: WSL running Ubuntu has the platform `ubuntu` and the trait `wsl`.
 
 #### Trait-Gated Items
 
@@ -221,7 +256,13 @@ To manually update:
 dotfiles-update
 ```
 
-This will pull the latest changes and automatically run any pending migrations.
+This pulls the latest changes, runs any pending migrations, and links any config files added since you last updated.
+
+Tools installed by mise update separately:
+
+```bash
+mise upgrade
+```
 
 To check for updates without applying:
 
@@ -292,7 +333,7 @@ dotfiles-migrate
 
 ## Supported Platforms
 
-- macOS (Apple Silicon & Intel)
-- Ubuntu Linux
-- Arch Linux
-- Windows Subsystem for Linux (WSL2)
+- macOS (Apple Silicon and Intel)
+- Arch Linux, including Omarchy
+- Ubuntu, and distributions based on it
+- Windows Subsystem for Linux (WSL2) running Ubuntu
