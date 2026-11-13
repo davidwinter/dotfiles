@@ -6,6 +6,13 @@
 dotfiles.root = "~/dotfiles/configs"
 dotfiles.relative_symlinks = true
 
+# For tools set to "latest", only take releases at least 7 days old, so a bad
+# or compromised release is usually pulled before it reaches these machines.
+# Claude Code is excluded to get its fixes promptly. Doesn't apply to system
+# packages, or to sources that publish no release dates.
+minimum_release_age = "7d"
+minimum_release_age_excludes = ["claude-code"]
+
 # Dotfiles: each group links one package directory into ~ with one symlink per
 # file (symlink-each), keeping directories real so files apps create there
 # (known_hosts, fish_variables, ...) stay out of the repo. Groups that only

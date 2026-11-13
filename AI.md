@@ -227,6 +227,7 @@ Like a migration, a removal entry only needs to stay until every machine has upd
 System packages and apps are under `[bootstrap.packages]` in `config.toml`; command-line tools are under `[tools]`.
 - One entry per package manager, with that manager's package name: `"pacman:fish" = "latest"`, `"apt:fish" = "latest"`, `"brew:fish" = { os = "macos" }`. Mise skips entries for a manager that isn't installed
 - `"latest"` means "make sure it's installed"; mise doesn't upgrade it
+- Tools set to `latest` only take releases at least 7 days old (`minimum_release_age` in `[settings]`), so a bad or compromised release is usually pulled before it arrives. Add a tool to `minimum_release_age_excludes` to keep it current (Claude Code is excluded)
 - Give Homebrew and `mas:` entries `os = "macos"`
 - On macOS, git and curl come with the system, so they have no entries
 - Check a Homebrew cask downloads from the vendor (`brew info --cask <name>`) before adding it. Mac App Store apps use `"mas:<app id>"` and need the `mas` tool (`brew:mas`) and an App Store sign-in
