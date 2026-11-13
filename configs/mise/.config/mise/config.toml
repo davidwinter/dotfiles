@@ -136,6 +136,14 @@ apps = ["/System/Applications/System Settings.app"] # Finder is always there
 [bootstrap.macos.finder]
 preferred_view_style = "column"
 
+# Hot corners (mise's Dock section has no keys for them). Actions: 10 = put
+# display to sleep, 13 = lock screen; modifier 0 = no key held.
+[bootstrap.macos.defaults."com.apple.dock"]
+wvous-bl-corner = 10
+wvous-bl-modifier = 0
+wvous-br-corner = 13
+wvous-br-modifier = 0
+
 [bootstrap.macos.defaults.NSGlobalDomain]
 AppleInterfaceStyle = "Dark"
 AppleShowAllExtensions = true

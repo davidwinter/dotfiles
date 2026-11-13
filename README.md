@@ -25,9 +25,10 @@ After installing, a few macOS settings have no dependable command-line setting, 
 - **Recent items:** System Settings → Control Centre → "Recent documents, applications and servers" → None. This empties the Apple menu's Recent Items, and Finder's Go → Recent Folders.
 - **Finder sidebar:** Finder → Settings → Sidebar, untick Recents.
 - **Spotlight:** System Settings → Spotlight, turn off "Show related content".
+- **Lock immediately when the lid closes or the display sleeps:** System Settings → Lock Screen → "Require password after screen saver begins or display is turned off" → Immediately. From a terminal: `sysadminctl -screenLock immediate -password -`, which asks for your password; that's why the dotfiles can't set it on every update.
 - **Caps Lock as Escape:** System Settings → Keyboard → Keyboard Shortcuts → Modifier Keys, set Caps Lock to Escape. macOS keeps this per keyboard, so repeat it for each external keyboard.
 
-The dotfiles set the rest of the macOS preferences (Dock, dark mode, Finder, clock and so on) in `configs/mise/.config/mise/config.toml`. Some take effect only after you log out and back in.
+The dotfiles set the rest of the macOS preferences (Dock, hot corners, dark mode, Finder, clock and so on) in `configs/mise/.config/mise/config.toml`. Some take effect only after you log out and back in.
 
 ### Arch Linux and Omarchy
 
