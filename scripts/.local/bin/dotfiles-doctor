@@ -12,6 +12,13 @@ source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
 echo "🏥 Dotfiles Health Check"
 echo
 
+echo "🧰 mise:"
+if check_mise_ready; then
+    echo "   ✅ mise $(get_mise_version) (needs $MISE_MIN_VERSION or newer)"
+fi
+echo "   ℹ️  Config modules: $(dotfiles-mise-env)"
+echo
+
 echo "📦 Packages:"
 echo
 

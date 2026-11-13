@@ -9,16 +9,33 @@ fi
 
 cd "$DOTFILES_DIR"
 
-echo "🔄 Updating dotfiles..."
+if [[ -z "${DOTFILES_UPDATE_PULLED:-}" ]]; then
+    echo "🔄 Updating dotfiles..."
 
-if git pull --rebase; then
-    echo "✅ Git pull successful"
-else
-    echo "❌ Git pull failed" >&2
-    exit 1
+    if git pull --rebase; then
+        echo "✅ Git pull successful"
+    else
+        echo "❌ Git pull failed" >&2
+        exit 1
+    fi
+
+    # Bash keeps running the copy of this script it started with, so restart
+    # with the version just pulled. Changes to the steps below then take
+    # effect in the same update that delivers them.
+    export DOTFILES_UPDATE_PULLED=1
+    exec "$DOTFILES_DIR/scripts/.local/bin/dotfiles-update" "$@"
 fi
 
 echo
+
+source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
+
+# Stop before changing anything if mise can't apply this version's config.
+if ! check_mise_ready; then
+    echo "❌ Update stopped: the repo is pulled, but nothing else has changed" >&2
+    echo "   Fix mise as above, then run: dotfiles-update" >&2
+    exit 1
+fi
 
 if dotfiles-migrate; then
     echo
@@ -32,18 +49,16 @@ fi
 echo "📃 Re-syncing dotfile configs..."
 echo
 
-source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
-
 # Idempotent: links any new file a package picked up since this host last
 # updated, so a config package never needs its own migration just to deliver
 # a new file to existing installs.
 stow_configs_for_host || echo "   ⚠️  One or more configs failed to stow" >&2
 
 echo
-echo "🧰 Installing any missing mise tools..."
+echo "🧰 Applying mise config..."
 echo
 
-install_mise_tools
+apply_mise_bootstrap
 
 echo
 echo "✅ Dotfiles updated successfully"

@@ -14,6 +14,11 @@ if test -d /opt/homebrew
 end
 
 if dotfiles-has-command mise
+    # Which config.dotfiles-*.toml modules apply to this machine, so mise
+    # commands typed here match what dotfiles-update applies.
+    if dotfiles-has-command dotfiles-mise-env
+        set -gx MISE_ENV (dotfiles-mise-env)
+    end
     mise activate fish | source
 else
     echo "⚠️  mise not found - install it from https://mise.jdx.dev then run: mise install"

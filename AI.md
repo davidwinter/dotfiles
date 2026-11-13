@@ -7,6 +7,10 @@
 **Primary Technologies**: Bash, Fish shell, GNU Stow, 1Password SSH Agent  
 **Repository**: davidwinter/dotfiles  
 
+### Migration to mise bootstrap (in progress)
+
+Machine setup is moving from stow and bash to `mise bootstrap` in phases. Read `docs/mise-migration-plan.md` before changing install, update, package, dotfile-linking or login-shell behaviour, and follow its "Moving machines safely" rules. In short: changes reach machines through `dotfiles-update`; any phase must work for a machine that skipped earlier ones; machine-specific mise config goes in `config.dotfiles-<module>.toml` modules selected by `MISE_ENV` (from `dotfiles-mise-env`); `MISE_MIN_VERSION` in `dotfiles-lib.sh` is the oldest supported mise.
+
 ### Core Goals
 1. **One-liner installation** - New machines can be set up with a single command
 2. **Cross-platform support** - Works on macOS, Ubuntu, Arch Linux, and WSL
@@ -822,10 +826,12 @@ Found in a project review and deliberately deferred. Pick these up individually.
 
 1. User runs `dotfiles-update` or notified by `dotfiles-updates-notify`
 2. `dotfiles-check-updates` runs once per day on interactive shell startup
-3. Script runs git pull in ~/dotfiles (via SSH after initial setup)
-4. Script runs `dotfiles-migrate` to apply any pending migrations
-5. Changes are immediately active (symlinks point to updated files)
-6. **Note**: New packages or stow packages require re-running `dotfiles-install`
+3. Script runs git pull in ~/dotfiles (via SSH after initial setup), then restarts itself so the steps below come from the version just pulled
+4. Script checks mise is installed and at least `MISE_MIN_VERSION`, stopping before any change if not
+5. Script runs `dotfiles-migrate` to apply any pending migrations
+6. Script re-stows every config for the host (links new files)
+7. Script runs `mise bootstrap --yes` with this machine's `MISE_ENV` modules (tools today; more setup as the migration plan progresses)
+8. **Note**: New system packages still require re-running `dotfiles-install` until phase 2 of the migration plan
 
 ## Health Check Flow
 

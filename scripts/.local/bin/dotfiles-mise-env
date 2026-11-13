@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Print the mise config modules that apply to this machine, comma-separated,
+# for MISE_ENV. Each module is a config.dotfiles-<name>.toml file in
+# ~/.config/mise; naming a module that has no file is harmless, so the
+# platform is always listed. See docs/mise-migration-plan.md.
+
+modules=""
+add() { modules="${modules:+$modules,}dotfiles-$1"; }
+
+if dotfiles-is-macos; then
+    add macos
+elif dotfiles-is-linux; then
+    distro="$(dotfiles-detect-linux-distro)"
+    [[ -n "$distro" ]] && add "$distro"
+    dotfiles-is-omarchy && add omarchy
+    dotfiles-is-wsl && add wsl
+fi
+
+dotfiles-has-1password && add 1password
+
+echo "$modules"

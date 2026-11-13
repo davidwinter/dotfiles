@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Omarchy reports ID=omarchy (and ID_LIKE=arch) in /etc/os-release.
+[[ -r /etc/os-release ]] && [[ "$(. /etc/os-release && echo "${ID:-}")" == "omarchy" ]]

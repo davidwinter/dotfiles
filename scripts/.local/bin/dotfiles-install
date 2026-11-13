@@ -34,6 +34,14 @@ mark_migrations_as_applied() {
 }
 
 echo
+echo "🧰 mise:"
+echo
+
+# Check before changing anything: mise applies the config and installs tools.
+check_mise_ready || exit 1
+echo "   ✅ mise $(get_mise_version)"
+
+echo
 echo "📦 Packages:"
 echo
 
@@ -81,10 +89,10 @@ echo
 stow_configs_for_host || echo "   ⚠️  One or more configs failed to stow" >&2
 
 echo
-echo "🧰 Tools:"
+echo "🧰 Applying mise config:"
 echo
 
-install_mise_tools
+apply_mise_bootstrap
 
 echo
 echo "🐟 Fish shell:"

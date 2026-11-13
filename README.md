@@ -2,7 +2,7 @@
 
 ## Before you install
 
-The installer needs `git`, `jq` and `curl`, uses your system package manager (Homebrew, apt or pacman) to install the rest, and expects [mise](https://mise.jdx.dev) for command-line tools. 1Password provides SSH keys and commit signing on machines you use directly.
+The installer needs `git`, `jq`, `curl` and [mise](https://mise.jdx.dev) 2026.11.6 or newer, and uses your system package manager (Homebrew, apt or pacman) to install the rest. 1Password provides SSH keys and commit signing on machines you use directly.
 
 ### 1Password (all desktop machines)
 
@@ -121,6 +121,9 @@ The dotfiles include helper scripts for common tasks:
 - `dotfiles-is-wsl` - Check if running on WSL
 - `dotfiles-is-ubuntu` - Check if running on Ubuntu
 - `dotfiles-is-arch` - Check if running on Arch Linux
+- `dotfiles-is-omarchy` - Check if running on Omarchy
+- `dotfiles-has-1password` - Check if the 1Password app is installed on this machine
+- `dotfiles-mise-env` - Print the mise config modules for this machine (fish sets `MISE_ENV` from it)
 - `dotfiles-is-ssh-session` - Check if the current shell is an SSH session
 - `dotfiles-has-command` - Check if a command exists
 - `dotfiles-detect-linux-distro` - Output the Linux distribution name

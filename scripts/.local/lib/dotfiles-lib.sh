@@ -342,21 +342,61 @@ stow_configs_for_host() {
     return "$failed"
 }
 
-# === mise tools ===
+# === mise ===
 
-# Command-line tools (starship, eza, lazygit, ...) come from the linked mise
-# config. Installs any that are missing; never fails the caller.
-install_mise_tools() {
+# The oldest mise these dotfiles support. Raise it when the mise config starts
+# relying on a newer feature; install and update stop on anything older.
+MISE_MIN_VERSION="2026.11.6"
+
+# True when version $1 is at least $2 (both year.month.patch).
+version_at_least() {
+    local IFS=.
+    local -a have=($1) need=($2)
+    local i h n
+    for i in 0 1 2; do
+        h="${have[$i]:-0}"; h="${h%%[!0-9]*}"
+        n="${need[$i]:-0}"; n="${n%%[!0-9]*}"
+        (( ${h:-0} > ${n:-0} )) && return 0
+        (( ${h:-0} < ${n:-0} )) && return 1
+    done
+    return 0
+}
+
+get_mise_version() {
+    mise --version 2>/dev/null | awk 'NR==1 { print $1 }'
+}
+
+# Checks mise is installed and new enough, explaining what to do if not.
+check_mise_ready() {
     if ! dotfiles-has-command mise; then
-        echo "   ⚠️  mise not found - install it from https://mise.jdx.dev, then run: mise install" >&2
-        return 0
+        echo "   ❌ mise not found - install it from https://mise.jdx.dev (see README.md)" >&2
+        return 1
     fi
 
-    if MISE_YES=1 mise install; then
-        echo "   ✅ mise tools installed"
-    else
-        echo "   ⚠️  mise install failed - run it again with: mise install" >&2
+    local version
+    version="$(get_mise_version)"
+    if ! version_at_least "$version" "$MISE_MIN_VERSION"; then
+        echo "   ❌ mise $version is too old - these dotfiles need $MISE_MIN_VERSION or newer" >&2
+        echo "      Update it the way you installed it (e.g. brew upgrade mise, or your package manager)" >&2
+        return 1
     fi
+}
+
+# Applies the mise config: today the tools, and more of the machine setup as
+# docs/mise-migration-plan.md progresses. MISE_ENV selects this machine's
+# config modules (see dotfiles-mise-env). Never fails the caller.
+apply_mise_bootstrap() {
+    if MISE_ENV="$(dotfiles-mise-env)" mise bootstrap --yes; then
+        echo "   ✅ mise bootstrap applied"
+    else
+        echo "   ⚠️  mise bootstrap failed - run it again with: mise bootstrap" >&2
+    fi
+}
+
+# The previous dotfiles-update called this after pulling, and the first update
+# that delivers this file still runs that old script. Remove in phase 6.
+install_mise_tools() {
+    apply_mise_bootstrap
 }
 
 # === 1Password ===
