@@ -81,6 +81,22 @@ echo
 stow_configs_for_host || echo "   ⚠️  One or more configs failed to stow" >&2
 
 echo
+echo "🧰 Tools:"
+echo
+
+# Command-line tools (starship, eza, lazygit, ...) come from the mise config
+# linked above. Install them now so the first fish shell has them.
+if dotfiles-has-command mise; then
+    if MISE_YES=1 mise install; then
+        echo "   ✅ mise tools installed"
+    else
+        echo "   ⚠️  mise install failed - run it again with: mise install" >&2
+    fi
+else
+    echo "   ⚠️  mise not found - install it from https://mise.jdx.dev, then run: mise install" >&2
+fi
+
+echo
 echo "🐟 Fish shell:"
 echo
 

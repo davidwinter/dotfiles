@@ -42,7 +42,10 @@ if not dotfiles-has-command zed; and dotfiles-has-command zeditor
     alias zed=zeditor
 end
 
-starship init fish | source
+# starship comes from mise, so it's missing until `mise install` has run.
+if dotfiles-has-command starship
+    starship init fish | source
+end
 
 if status is-interactive; and dotfiles-has-command dotfiles-updates-notify
     dotfiles-updates-notify
