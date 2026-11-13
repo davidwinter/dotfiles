@@ -9,7 +9,7 @@ The installer needs `git`, `curl` and [mise](https://mise.jdx.dev) 2026.11.6 or 
 1. Install 1Password and sign in.
 2. Open Settings → Developer and turn on "Use the SSH Agent". Opt into displaying key names if asked.
 3. When 1Password offers to update `~/.ssh/config`, decline. The dotfiles manage that file.
-4. Add your SSH public key to your GitHub account. The installer switches the repo's remote from HTTPS to SSH, so pushing and pulling use this key.
+4. Add your SSH public key to your GitHub account. The dotfiles repo is cloned and pulled over HTTPS but pushed over SSH, so pushing uses this key.
 
 On WSL, install 1Password for Windows and turn on its SSH agent there instead.
 
@@ -80,8 +80,8 @@ The first time you push or pull over SSH, ssh asks you to confirm GitHub's host 
 
 1. Clones the repo to `~/dotfiles` over HTTPS.
 2. Installs system packages and apps through mise, with Homebrew, apt or pacman: GNU Stow, fish, a JetBrains Mono Nerd Font, and on macOS btop and Firefox. The list lives under `[bootstrap.packages]` in `configs/mise/.config/mise/config.toml`.
-3. Links 1Password's SSH agent socket (macOS) and its `op-ssh-sign` helper into `/usr/local/bin`. Skipped when installing over SSH.
-4. Switches the repo's git remote from HTTPS to SSH.
+3. Where the 1Password app is installed, links its `op-ssh-sign` helper into `~/.local/bin` for commit signing, and on macOS its SSH agent socket to `~/.1password/agent.sock`.
+4. Sets git to push the dotfiles repo over SSH (`pushInsteadOf` in `.gitconfig`).
 5. Links the config files into your home directory through mise, one symlink per file.
 6. Installs the command-line tools in the mise config with `mise install`.
 7. Makes fish your login shell through mise (adding it to `/etc/shells` if needed).
@@ -207,7 +207,7 @@ dotfiles-doctor
 This will report on:
 - Installed packages
 - 1Password configuration
-- Git remote configuration
+- The dotfiles repo pushing over SSH
 - Dotfile links
 - Login shell (fish)
 - Migration status

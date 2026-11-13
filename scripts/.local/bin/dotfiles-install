@@ -3,8 +3,6 @@
 set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
-OP_AGENT_SOCKET_PATH="$HOME/.1password/agent.sock"
-OP_SSH_SIGN_PATH="/usr/local/bin/op-ssh-sign"
 
 if ! dotfiles-has-command dotfiles-has-command 2>/dev/null; then
     export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
@@ -50,29 +48,6 @@ echo
 if ! apply_mise_bootstrap; then
     echo "   Then run dotfiles-install again" >&2
     exit 1
-fi
-
-echo
-echo "🔑 1Password:"
-echo
-
-if dotfiles-is-ssh-session; then
-    echo "   ℹ️  SSH session detected — skipping 1Password setup"
-    echo "   ℹ️  Git signing will use the forwarded SSH agent via ssh-keygen"
-else
-    if ! dotfiles-is-wsl; then
-        ensure_1password_agent "$OP_AGENT_SOCKET_PATH" && echo "   ✅ 1Password agent socket OK"
-    fi
-
-    ensure_1password_ssh_sign "$OP_SSH_SIGN_PATH" && echo "   ✅ 1Password op-ssh-sign helper available at $OP_SSH_SIGN_PATH"
-fi
-
-echo
-echo "🔐 Git Remote:"
-echo
-
-if ensure_git_remote_ssh; then
-    echo "   ✅ Git remote configured for SSH"
 fi
 
 echo

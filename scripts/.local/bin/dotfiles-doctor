@@ -29,28 +29,22 @@ else
 fi
 echo
 echo "🔑 1Password:"
-if dotfiles-is-ssh-session; then
-    echo "   ℹ️  SSH session — 1Password not expected on this host"
-else
+if dotfiles-has-1password; then
     if check_1password_agent; then
-        echo "   ✅ Agent socket"
+        echo "   ✅ SSH agent socket"
     else
-        echo "   ❌ Agent socket"
+        echo "   ❌ SSH agent socket missing (is 1Password running with its SSH agent on?)"
     fi
-
-    if check_1password_ssh_sign; then
-        echo "   ✅ SSH sign helper"
-    else
-        echo "   ❌ SSH sign helper"
-    fi
+else
+    echo "   ℹ️  1Password app not installed here (signing uses a forwarded agent)"
 fi
 
 echo
 echo "🔐 Git:"
-if check_git_remote_ssh; then
-    echo "   ✅ Remote uses SSH"
+if check_git_push_ssh; then
+    echo "   ✅ Dotfiles repo pushes over SSH"
 else
-    echo "   ❌ Remote uses HTTPS"
+    echo "   ❌ Dotfiles repo pushes over HTTPS"
 fi
 
 echo

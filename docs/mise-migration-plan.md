@@ -2,7 +2,7 @@
 
 A phased plan to hand machine setup to `mise bootstrap` and mise dotfiles, across Omarchy, macOS, WSL and Ubuntu. Every phase reaches machines through `dotfiles-update`, works on a machine that has skipped earlier phases, and can be rolled back by reverting its commits.
 
-Status: phases 0 to 3 done (verified on penny and the Mac); phase 4 in progress.
+Status: phases 0 to 4 done (verified on penny and the Mac); phase 5 in progress.
 
 ## Where it ends up
 
@@ -162,13 +162,14 @@ The last things the installer does by hand become config.
 
 Work:
 
-- 1Password agent socket on macOS: a symlink entry in `dotfiles-macos`.
-- `op-ssh-sign`: `git-ssh-sign` calls it from where 1Password installs it, removing the `sudo` link in `/usr/local/bin`.
-- Repo remote: a `pushInsteadOf` rule in `.gitconfig` pushes to GitHub over SSH, so the installer no longer rewrites the remote.
+- `op-ssh-sign`: mise links `~/.local/bin/op-ssh-sign` to where 1Password installs it, with one entry per OS in `config.dotfiles-1password.toml` (each limited with `variants = [{ os = ... }]`, since a variant can't change the source). `git-ssh-sign` keeps calling one fixed path, now in your home directory, with no `sudo`. WSL needs nothing: `config-wsl` points git at Windows' 1Password directly.
+- 1Password agent socket on macOS: a macOS-only entry in the same module.
+- Repo remote: a `pushInsteadOf` rule in `.gitconfig`, scoped to the dotfiles repo, pushes it over SSH. New clones pull over HTTPS, so the daily update check needs no key; the installer no longer rewrites the remote.
+- `dotfiles-doctor` checks the agent socket where 1Password is installed, and that the dotfiles repo pushes over SSH.
 
-Migrations: none needed. Existing machines already have the socket link and an SSH remote, and the old `/usr/local/bin/op-ssh-sign` link is harmless if left.
+Migrations: none needed. Existing machines keep their SSH remote, and the old `/usr/local/bin/op-ssh-sign` link is harmless if left (removing it would need `sudo`). On a Mac, the existing agent socket link matches the new entry.
 
-Removes: the 1Password and git remote functions in `dotfiles-lib.sh`.
+Removes: the 1Password, git remote and `elevate_priv` functions in `dotfiles-lib.sh`, and the installer's 1Password and git remote steps.
 
 Exit check: signed commits work on each machine, at the desk and over SSH.
 

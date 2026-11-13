@@ -23,5 +23,6 @@ if SSH_AUTH_SOCK="$forwarded" ssh-add -l >/dev/null 2>&1; then
   export SSH_AUTH_SOCK="$forwarded"
   exec ssh-keygen "$@"
 else
-  exec /usr/local/bin/op-ssh-sign "$@"
+  # Linked by mise (config.dotfiles-1password.toml) to where 1Password installs it.
+  exec "$HOME/.local/bin/op-ssh-sign" "$@"
 fi

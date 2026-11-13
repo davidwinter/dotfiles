@@ -1,20 +1,6 @@
 #!/usr/bin/env bash
 # Shared library for dotfiles install and doctor scripts
 
-# === Utilities ===
-
-elevate_priv() {
-    if ! dotfiles-has-command sudo; then
-        echo "sudo not found" >&2
-        exit 1
-    fi
-
-    if ! sudo -v; then
-        echo "Superuser not granted, aborting installation" >&2
-        exit 1
-    fi
-}
-
 # === mise ===
 
 # The oldest mise these dotfiles support. Raise it when the mise config starts
@@ -131,83 +117,16 @@ install_mise_tools() {
     :
 }
 
-# === 1Password ===
+# === 1Password and git ===
 
 check_1password_agent() {
-    local socket="${1:-$HOME/.1password/agent.sock}"
-    [[ -S "$socket" ]]
+    [[ -S "$HOME/.1password/agent.sock" ]]
 }
 
-ensure_1password_agent() {
-    local socket="${1:-$HOME/.1password/agent.sock}"
-
-    # Return if already configured
-    check_1password_agent "$socket" && return 0
-
-    if dotfiles-is-macos; then
-        mkdir -p "$(dirname "$socket")"
-        ln -s "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" "$socket"
-        return 0
-    fi
-
-    echo "   ⚠️  Ensure the 1Password agent is running and the socket exists at $socket (or create an appropriate symlink)." >&2
-    return 1
-}
-
-check_1password_ssh_sign() {
-    local target="${1:-/usr/local/bin/op-ssh-sign}"
-    [[ -x "$target" ]]
-}
-
-ensure_1password_ssh_sign() {
-    local target="${1:-/usr/local/bin/op-ssh-sign}"
-
-    # Return if already configured
-    check_1password_ssh_sign "$target" && return 0
-
-    elevate_priv
-
-    # A fresh Apple Silicon Mac has no /usr/local/bin until something creates it.
-    sudo mkdir -p "$(dirname "$target")"
-
-    if dotfiles-is-macos; then
-        sudo ln -s "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" "$target"
-    fi
-
-    if dotfiles-is-linux; then
-        if dotfiles-is-wsl; then
-            local win_home=$(wslpath "$(cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')")
-            sudo ln -s "$win_home/AppData/Local/1Password/app/8/op-ssh-sign-wsl" "$target"
-        else
-            sudo ln -s "/opt/1Password/op-ssh-sign" "$target"
-        fi
-    fi
-}
-
-# === Git ===
-
-check_git_remote_ssh() {
-    cd "$DOTFILES_DIR"
-
-    local current_remote=$(git remote get-url origin 2>/dev/null)
-    [[ "$current_remote" =~ ^git@github\.com: ]]
-}
-
-ensure_git_remote_ssh() {
-    cd "$DOTFILES_DIR"
-
-    # Return if already SSH
-    check_git_remote_ssh && return 0
-
-    local current_remote=$(git remote get-url origin)
-
-    if [[ "$current_remote" =~ ^https://github\.com/(.+)$ ]]; then
-        local repo="${BASH_REMATCH[1]}"
-        repo="${repo%.git}"
-        local ssh_url="git@github.com:${repo}.git"
-
-        git remote set-url origin "$ssh_url"
-    fi
+# The dotfiles repo pushes over SSH (pushInsteadOf in .gitconfig, or an SSH
+# remote on machines installed before that rule).
+check_git_push_ssh() {
+    [[ "$(git -C "${DOTFILES_DIR:-$HOME/dotfiles}" remote get-url --push origin 2>/dev/null)" == git@github.com:* ]]
 }
 
 # === Login shell ===

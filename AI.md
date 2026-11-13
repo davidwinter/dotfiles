@@ -35,7 +35,6 @@ dotfiles-install (main installer)
     ├─ Uses: helper scripts for all OS detection
     ├─ Runs: mise bootstrap (packages, dotfile links, macOS preferences, tools)
     ├─ Sets up: 1Password SSH agent + signing
-    ├─ Switches: git remote HTTPS → SSH
     └─ Configures: Fish as default shell
         ↓
 Helper Scripts (composable utilities)
@@ -162,8 +161,6 @@ dotfiles/
 - Main installer script, bootstraps entire system
 - Sources shared library (dotfiles-lib.sh) for all check/ensure functions
 - Checks mise is installed and new enough (`check_mise_ready`), then runs `mise bootstrap` (`apply_mise_bootstrap`): packages, dotfile links, macOS preferences and tools. It points mise at the repo's copy of the config, so it works before anything is linked
-- Sets up 1Password SSH agent integration using `ensure_1password_agent` and `ensure_1password_ssh_sign`
-- Switches git remote from HTTPS to SSH using `ensure_git_remote_ssh`
 - Marks all existing migrations as applied (only on fresh installs)
 - Idempotent - safe to run multiple times
 
@@ -235,7 +232,7 @@ dotfiles/
 ### macOS
 - Uses Homebrew for package installation
 - 1Password socket: symlink from `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock`
-- op-ssh-sign: symlink from `/Applications/1Password.app/Contents/MacOS/op-ssh-sign`
+- op-ssh-sign: `~/.local/bin/op-ssh-sign` links to `/Applications/1Password.app/Contents/MacOS/op-ssh-sign` (`dotfiles-1password` module, macOS entry)
 - Installs JetBrains Mono Nerd Font via Homebrew cask
 - Links: Ghostty config (`dotfiles-macos` module)
 
@@ -243,7 +240,7 @@ dotfiles/
 - Uses apt for package installation
 - Requires sudo elevation
 - 1Password: expects socket at `~/.1password/agent.sock`
-- op-ssh-sign: symlink from `/opt/1Password/op-ssh-sign`
+- op-ssh-sign: `~/.local/bin/op-ssh-sign` links to `/opt/1Password/op-ssh-sign` (`dotfiles-1password` module, Linux entry)
 
 ### Arch Linux
 - Uses pacman for package installation
@@ -619,19 +616,19 @@ System packages and macOS apps are declared under `[bootstrap.packages]` in `con
 **SSH Agent:**
 - 1Password runs an SSH agent that holds keys
 - Socket location varies by OS
-- dotfiles-install creates symlink to `~/.1password/agent.sock` for consistency across most platforms
+- On macOS, mise links `~/.1password/agent.sock` to the socket in 1Password's app container (`dotfiles-1password` module); on Linux 1Password creates it there itself
 - SSH config uses `IdentityAgent` to point to this socket
 - WSL: Must use ssh.exe to access Windows-side agent
 
 **Git Signing:**
 - Uses SSH keys instead of GPG keys (`gpg.format = ssh`)
 - On machines with the 1Password app (`dotfiles-1password` module) the `git-1password` package sets `gpg.ssh.program` to the `git-ssh-sign` wrapper (`~/.local/bin/git-ssh-sign`, resolved via PATH), not `op-ssh-sign` directly
-- The wrapper dispatches: in an SSH session with a forwarded agent (`$SSH_CONNECTION` and `$SSH_AUTH_SOCK` both set) it signs via `ssh-keygen` through the forwarded agent so the biometric prompt lands on the local machine; otherwise it signs locally via `op-ssh-sign`. This stops a desktop that is also SSH'd into from popping its own 1Password on remote commits
+- The wrapper dispatches: while `~/.ssh/agent.sock` (kept by fish in SSH logins) points at a live forwarded agent it signs via `ssh-keygen` through it, so the biometric prompt lands on the machine you connected from; otherwise it signs locally via `~/.local/bin/op-ssh-sign`, which mise links to 1Password's tool on each OS
 - Signs commits and tags automatically when configured
 - Public key fingerprint stored in .gitconfig as `user.signingkey`
 
 ### Remote / Headless Installs
-- When installing over SSH (`$SSH_CONNECTION` set), `dotfiles-install` auto-skips the 1Password agent and op-ssh-sign setup. The `git-1password` files are linked wherever the 1Password app is installed (`dotfiles-1password` module), whether or not you're connected over SSH; `git-ssh-sign` picks the forwarded agent while one is live
+- The `git-1password` files and the `op-ssh-sign` link are applied wherever the 1Password app is installed (`dotfiles-1password` module), whether or not you're connected over SSH; `git-ssh-sign` picks the forwarded agent while one is live
 - Base `.gitconfig` does not hardcode `gpg.ssh.program`; the override lives in the separate `git-1password` package (which also ships the `git-ssh-sign` wrapper) and is included via `~/.config/git/config-1password` (git silently ignores missing includes)
 - Git signing on remote hosts works through the forwarded SSH agent via native `ssh-keygen` — the user must have `ForwardAgent yes` set for the remote on their local `~/.ssh/config`
 
@@ -657,7 +654,7 @@ System packages and macOS apps are declared under `[bootstrap.packages]` in `con
 ### Supporting a New OS
 1. Add detection function: `is_<os>() { ... }`
 2. Update ensure_installed() with package manager logic
-3. Handle 1Password paths in ensure_1password_agent() and ensure_1password_ssh_sign()
+3. Add 1Password link entries for the OS to `config.dotfiles-1password.toml` (each limited with `variants = [{ os = ... }]`)
 4. Add a machine module or `os`-limited entries in the mise config if needed
 5. Test thoroughly on actual system
 
@@ -679,7 +676,7 @@ System packages and macOS apps are declared under `[bootstrap.packages]` in `con
 - **Issue**: Windows username is hardcoded in git-wsl/config-wsl
 - **Impact**: Doesn't work if Windows username differs
 - **Workaround**: Manual edit of config-wsl file
-- **Note**: The path is duplicated: `config-wsl` hardcodes the full path including the username and `app/8`, while `ensure_1password_ssh_sign` resolves the username at runtime but still hardcodes `app/8`. Pointing `config-wsl` at `/usr/local/bin/op-ssh-sign` (which the installer creates) would leave one source of truth
+- **Note**: `config-wsl` hardcodes the full path, including the username and `app/8`
 
 ### 1Password Socket (Linux)
 - **Issue**: No automatic socket creation on Linux
@@ -710,7 +707,7 @@ Found in a project review and deliberately deferred. Pick these up individually.
   - Must enable SSH Agent in settings
   - Must add SSH keys to vault
 - **curl** - For downloading installer
-- **sudo access** (Linux only) - For installing packages and creating symlinks in /usr/local
+- **sudo access** - For installing packages and changing the login shell
 
 ### Installer Provides
 - System packages from `[bootstrap.packages]` (git, curl, stow, fish, font; btop and Firefox on macOS) and tools from `[tools]` (starship, eza, lazygit and more), all via mise
@@ -792,8 +789,6 @@ Found in a project review and deliberately deferred. Pick these up individually.
 7. Installer sources shared library (dotfiles-lib.sh)
 8. Detects OS and distribution using helper scripts (dotfiles-is-macos, dotfiles-is-linux, etc.)
 9. Checks mise, then runs `mise bootstrap` with the repo's copy of the mise config (`apply_mise_bootstrap`): installs packages, links dotfiles, applies macOS preferences, installs tools
-10. Sets up 1Password agent socket and op-ssh-sign symlinks (using `ensure_1password_agent` and `ensure_1password_ssh_sign`)
-11. Switches git remote from HTTPS to SSH (using `ensure_git_remote_ssh`)
 14. Marks all existing migrations as applied (only on fresh installs)
 15. Displays success messages with status indicators
 
@@ -813,8 +808,8 @@ Found in a project review and deliberately deferred. Pick these up individually.
 3. Runs `check_*` functions to validate:
    - mise installed and new enough, and this machine's modules
    - Packages installed (from `mise bootstrap packages status`)
-   - 1Password agent socket and SSH sign helper configured
-   - Git remote using SSH
+   - 1Password SSH agent socket present (where the app is installed)
+   - The dotfiles repo pushes over SSH
    - Dotfiles linked (from `mise dot status`)
    - Login shell is fish (from `mise bootstrap user status`)
    - All migrations applied
@@ -838,7 +833,7 @@ Found in a project review and deliberately deferred. Pick these up individually.
 - ✅ Main installer uses helper scripts (no inline functions)
 - ✅ All scripts use consistent bash style (set -euo pipefail, [[, ==)
 - ✅ Fish config uses helper scripts (no duplication)
-- ✅ Git remote automatically switches from HTTPS to SSH
+- ✅ The dotfiles repo pulls over HTTPS and pushes over SSH (`pushInsteadOf`)
 - ✅ Zero code duplication across bash scripts and Fish config
 - ✅ Migration system for safe structural changes over time
 - ✅ Automatic migration execution on updates

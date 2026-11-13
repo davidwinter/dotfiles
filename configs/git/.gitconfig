@@ -26,6 +26,10 @@
   autostash = true
 [init]
   defaultBranch = main
+# The dotfiles repo is cloned and pulled over HTTPS (no key needed) but pushed
+# over SSH, so pushes use your 1Password key.
+[url "git@github.com:davidwinter/dotfiles"]
+  pushInsteadOf = https://github.com/davidwinter/dotfiles
 [include]
   path = ~/.config/git/config-1password
 [include]
