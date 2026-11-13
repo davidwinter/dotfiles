@@ -155,7 +155,7 @@ dotfiles/
 **`dotfiles-install`**
 - Main installer script, bootstraps entire system
 - Sources shared library (dotfiles-lib.sh) for all check/ensure functions
-- Detects OS and installs appropriate packages using `ensure_package_installed`
+- Checks mise is installed and new enough (`check_mise_ready`), then installs system packages from `[bootstrap.packages]` in the mise config (`install_bootstrap_packages`, which points mise at the repo's config because it isn't linked yet)
 - Sets up 1Password SSH agent integration using `ensure_1password_agent` and `ensure_1password_ssh_sign`
 - Switches git remote from HTTPS to SSH using `ensure_git_remote_ssh`
 - Stows scripts from root and configs from configs/ directory using `ensure_dotfiles_config_present`
@@ -277,7 +277,7 @@ When both are set on an item, both must match (AND between fields, OR within eac
 - `get_current_platform()` — returns single platform string (underlying distro on WSL).
 - `get_current_traits()` — emits one trait per line for the current host.
 - `get_current_traits_json()` — same, but as a JSON array (for jq).
-- `get_packages_for_host()` / `get_configs_for_host()` — return the filtered set for the current host (platforms AND traits considered).
+- `get_configs_for_host()` — returns the filtered set of configs for the current host (platforms AND traits considered). System packages are no longer in `dotfiles.json`; they live under `[bootstrap.packages]` in the mise config.
 
 ### Adding a new trait
 
@@ -343,8 +343,7 @@ Every script and migration must run unchanged on macOS, Ubuntu, Arch and WSL. ma
   - `check_*` - Returns 0 if condition met, 1 if not (read-only)
   - `ensure_*` - Applies configuration to make condition true (uses `check_*` internally)
 - **Examples**:
-  - `check_package_installed "git"` - Returns 0 if git installed
-  - `ensure_package_installed "git"` - Installs git if not present
+  - `check_bootstrap_packages` - Prints each mise-declared package's state; returns 1 if any is missing
   - `check_dotfiles_config_present "fish"` - Returns 0 if every file in the fish config is linked; prints any target that is not
   - `ensure_dotfiles_config_present "fish"` - Stows fish config if not present
 
@@ -603,24 +602,14 @@ done
 
 ## Package Management
 
-### Installed Packages
-**Required for functionality:**
-- git, stow, fish, starship, lazygit, lazydocker, mise, eza
-- JetBrains Mono Nerd Font (for proper terminal rendering using eza, and looks nice within Ghostty)
+System packages and macOS apps are declared under `[bootstrap.packages]` in `configs/mise/.config/mise/config.toml` and installed by `mise bootstrap` (migration phase 2). Command-line tools are under `[tools]` in the same file.
 
-**Package Installation Logic:**
-```
-ensure_installed() function handles:
-- macOS: brew install
-- Ubuntu: apt install (with apt update)
-- Arch: pacman -Syu
-- Checks if already installed before attempting
-```
-
-### Adding New Packages
-1. Add to PACKAGES array in dotfiles-install
-2. Ensure package name matches across package managers (or handle differences)
-3. Test on all supported platforms
+- One entry per package manager, with that manager's package name: `"pacman:fish" = "latest"`, `"apt:fish" = "latest"`, `"brew:fish" = { os = "macos" }`. Mise skips entries for a manager that isn't installed.
+- `"latest"` means "make sure it's installed"; mise doesn't upgrade it.
+- Give Homebrew entries `os = "macos"` so a Linuxbrew install doesn't pick them up.
+- On macOS, git, curl and jq come with the system, so there are no Homebrew entries for them.
+- Before adding a Homebrew cask, check it downloads from the vendor: `brew info --cask <name>`.
+- The installer runs `install_bootstrap_packages` before stowing, pointing mise at the repo's config (`MISE_CONFIG_DIR`), because stow itself is one of the packages. `dotfiles-update` applies packages as part of its full `mise bootstrap` run.
 
 ## 1Password Integration
 
@@ -719,7 +708,6 @@ Found in a project review and deliberately deferred. Pick these up individually.
 - **Desktop trait depends on the session**: `get_current_traits` marks a host as `desktop` only when not in an SSH session, so running `dotfiles-install` over SSH on a desktop skips `git-1password`. Derive it from the host instead (e.g. presence of `/Applications/1Password.app` or `/opt/1Password`)
 - **Daily update check blocks the prompt**: `dotfiles-updates-notify` runs `git fetch` synchronously on interactive shell start. When offline the fetch fails, the cache date isn't written, and every new shell blocks on the fetch again. Write the date regardless, or run the check in the background
 - **Shell startup spawns bash helpers**: `config.fish` calls `dotfiles-is-macos`, `dotfiles-has-command`, etc., each a separate bash process. Fish builtins (`test (uname) = Darwin`, `type -q`) avoid that
-- **Unknown Linux distros report packages as installed**: `check_package_installed` has no fallback branch, so on Debian, Fedora, Mint, Manjaro, EndeavourOS, etc. it returns success. Read `ID_LIKE` from `/etc/os-release` and fail loudly for unsupported distros
 - **`"linux"` in a platforms array matches on macOS**: the array check is `. == $platform or . == "linux"` without excluding macOS. Latent (nothing uses it yet). The same matching logic is copied four times (packages and configs in `dotfiles-lib.sh`, twice in `dotfiles-validate`); extract one shared jq function
 - **`dotfiles-check-updates` edge cases**: reports "updates available (0 commits behind)" when local is ahead of the remote; compare the behind count instead. With no upstream, `git rev-parse @{u}` fails under `set -e` before the friendly error prints
 - **`dotfiles-validate` error counting**: `((errors++))` returns non-zero when `errors` is 0, which exits under `set -e` on bash 4.1+ (macOS bash 3.2 tolerates it). Use `errors=$((errors + 1))`
@@ -814,7 +802,7 @@ Found in a project review and deliberately deferred. Pick these up individually.
 6. Executes dotfiles-install from cloned repository
 7. Installer sources shared library (dotfiles-lib.sh)
 8. Detects OS and distribution using helper scripts (dotfiles-is-macos, dotfiles-is-linux, etc.)
-9. Installs required packages via appropriate package manager (using `ensure_package_installed`)
+9. Installs system packages from `[bootstrap.packages]` in the mise config (`install_bootstrap_packages`)
 10. Sets up 1Password agent socket and op-ssh-sign symlinks (using `ensure_1password_agent` and `ensure_1password_ssh_sign`)
 11. Switches git remote from HTTPS to SSH (using `ensure_git_remote_ssh`)
 12. Stows scripts from root directory and configs from configs/ directory (using `ensure_dotfiles_config_present`)

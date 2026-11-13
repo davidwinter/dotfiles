@@ -1,19 +1,4 @@
 {
-  "packages": [
-    "fish",
-    {
-      "name": "btop",
-      "platforms": ["macos"]
-    },
-    {
-      "name": "nerd-font",
-      "platforms": {
-        "macos": "font-jetbrains-mono-nerd-font",
-        "arch": "ttf-jetbrains-mono-nerd",
-        "ubuntu": "fonts-jetbrains-mono"
-      }
-    }
-  ],
   "configs": [
     "git",
     "ssh",
@@ -24,19 +9,27 @@
     "vim",
     {
       "name": "ghostty-macOS",
-      "platforms": ["macos"]
+      "platforms": [
+        "macos"
+      ]
     },
     {
       "name": "omarchy",
-      "platforms": ["arch"]
+      "platforms": [
+        "arch"
+      ]
     },
     {
       "name": "git-1password",
-      "traits": ["desktop"]
+      "traits": [
+        "desktop"
+      ]
     },
     {
       "name": "git-wsl",
-      "traits": ["wsl"]
+      "traits": [
+        "wsl"
+      ]
     },
     "mise",
     "claude",

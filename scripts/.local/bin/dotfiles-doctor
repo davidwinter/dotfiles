@@ -22,26 +22,11 @@ echo
 echo "📦 Packages:"
 echo
 
-echo "🔧 Core packages (toolchain):"
-check_core_packages
-echo
-
-echo "🔧 User packages:"
-while IFS= read -r pkg; do
-    [[ -z "$pkg" ]] && continue
-
-    if is_core_package "$pkg"; then
-        echo "   ℹ️  Skipping core package: $pkg"
-        continue
-    fi
-
-    if check_package_installed "$pkg"; then
-        echo "   ✅ $pkg"
-    else
-        echo "   ❌ $pkg"
-    fi
-done < <(get_packages_for_host)
-
+if check_bootstrap_packages; then
+    echo "   ✅ All installed"
+else
+    echo "   ❌ Some are missing (run: dotfiles-update)"
+fi
 echo
 echo "🔑 1Password:"
 if dotfiles-is-ssh-session; then

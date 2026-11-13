@@ -80,7 +80,7 @@ The first time you push or pull over SSH, ssh asks you to confirm GitHub's host 
 ## What it does
 
 1. Clones the repo to `~/dotfiles` over HTTPS.
-2. Installs packages with Homebrew, apt or pacman: GNU Stow, fish, a JetBrains Mono Nerd Font, and btop on macOS. The list lives in `dotfiles.json` and `system/core-packages.json`.
+2. Installs system packages and apps through mise, with Homebrew, apt or pacman: GNU Stow, fish, a JetBrains Mono Nerd Font, and on macOS btop and Firefox. The list lives under `[bootstrap.packages]` in `configs/mise/.config/mise/config.toml`.
 3. Links 1Password's SSH agent socket (macOS) and its `op-ssh-sign` helper into `/usr/local/bin`. Skipped when installing over SSH.
 4. Switches the repo's git remote from HTTPS to SSH.
 5. Links the config files into your home directory with GNU Stow.
@@ -142,26 +142,28 @@ These helper scripts are available in your PATH after installation and are used 
 
 ## Configuration
 
-The dotfiles system uses a `dotfiles.json` configuration file to define which packages to install and which configs to apply. This makes it easy to customize for different platforms and use cases.
+Configuration is split between two files while the dotfiles move to mise bootstrap (see `docs/mise-migration-plan.md`):
 
-### Configuration File Structure
+- **`configs/mise/.config/mise/config.toml`** - tools, system packages and apps (`[bootstrap.packages]`), and macOS preferences. Limit an entry to one OS with `os = "macos"` or `os = "linux"`, or to one package manager with its prefix (`pacman:`, `apt:`, `brew:`, `brew-cask:`); mise skips entries for a package manager that isn't installed.
+- **`dotfiles.json`** - which config directories to link with Stow.
 
-The `dotfiles.json` file has two main sections:
+### Adding a system package
 
-- **`packages`** - List of packages to install
-- **`configs`** - List of configuration directories to apply with Stow
+Add one entry per package manager, using that manager's package name:
 
-#### Simple Packages/Configs
+```toml
+[bootstrap.packages]
+"pacman:ttf-jetbrains-mono-nerd" = "latest"
+"apt:fonts-jetbrains-mono" = "latest"
+"brew-cask:font-jetbrains-mono-nerd-font" = { os = "macos" }
+```
 
-For packages or configs that work the same across all platforms:
+`"latest"` means "make sure it's installed"; mise doesn't upgrade it. Machines pick up new entries on their next `dotfiles-update`.
+
+### Config directories in `dotfiles.json`
 
 ```json
 {
-  "packages": [
-    "git",
-    "stow",
-    "starship"
-  ],
   "configs": [
     "git",
     "ssh",
@@ -172,9 +174,9 @@ For packages or configs that work the same across all platforms:
 
 **Note:** The `scripts` config is automatically included and should not be added to the JSON file.
 
-#### Platform-Specific Items
+#### Platform-Specific Configs
 
-For items that only apply to certain platforms:
+For configs that only apply to certain platforms:
 
 ```json
 {
@@ -191,33 +193,13 @@ For items that only apply to certain platforms:
 }
 ```
 
-#### Platform-Specific Package Names
-
-For packages that have different names on different platforms:
-
-```json
-{
-  "packages": [
-    {
-      "name": "nerd-font",
-      "platforms": {
-        "macos": "font-jetbrains-mono-nerd-font",
-        "arch": "ttf-jetbrains-mono-nerd",
-        "ubuntu": "fonts-jetbrains-mono"
-      }
-    }
-  ]
-}
-```
-
 ### Supported Platform Identifiers
 
 - **`macos`** - macOS
 - **`arch`** - Arch Linux, and distributions based on it such as Omarchy
 - **`ubuntu`** - Ubuntu, and distributions based on it such as Pop!_OS
-- **`linux`** - In the object form of platform-specific package names, a fallback name for any Linux platform without its own entry
 
-Distributions based on Arch or Ubuntu are detected through `ID_LIKE` in `/etc/os-release`. Other distributions report their own `ID` (for example `debian` or `fedora`), but the installer only knows how to install packages with Homebrew, apt and pacman. WSL is a trait, not a platform: WSL running Ubuntu has the platform `ubuntu` and the trait `wsl`.
+Distributions based on Arch or Ubuntu are detected through `ID_LIKE` in `/etc/os-release`. Other distributions report their own `ID` (for example `debian` or `fedora`), and mise only installs packages from the package managers it supports. WSL is a trait, not a platform: WSL running Ubuntu has the platform `ubuntu` and the trait `wsl`.
 
 #### Trait-Gated Items
 
@@ -247,7 +229,7 @@ When both `platforms` and `traits` are set on an item, **both must match** (AND 
 
 ### Validating Configuration
 
-To validate your `dotfiles.json` configuration:
+To validate your `dotfiles.json` configuration (mise checks its own config and warns about anything it doesn't recognise):
 
 ```bash
 dotfiles-validate
@@ -255,7 +237,7 @@ dotfiles-validate
 
 This will check for:
 - Valid JSON syntax
-- Required fields (packages, configs)
+- Required fields (configs)
 - Proper object structure
 - Valid platform identifiers
 

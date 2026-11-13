@@ -45,19 +45,14 @@ echo
 echo "📦 Packages:"
 echo
 
-if ! install_core_packages; then
-    echo "   ⚠️  Failed to install core packages - please install them manually (e.g. git, stow, curl, jq)" >&2
+# From [bootstrap.packages] in the mise config, so stow and fish are in place
+# before the steps below need them.
+if install_bootstrap_packages; then
+    echo "   ✅ Packages installed"
+else
+    echo "   ❌ Failed to install packages - fix the error above, then run dotfiles-install again" >&2
     exit 1
 fi
-
-while IFS= read -r pkg; do
-    if ensure_package_installed "$pkg"; then
-        echo "   ✅ $pkg is installed"
-    else
-        echo "   ⚠️  Failed to install $pkg - please install it manually" >&2
-        exit 1
-    fi
-done < <(get_packages_for_host)
 
 echo
 echo "🔑 1Password:"

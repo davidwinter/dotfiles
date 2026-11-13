@@ -20,9 +20,33 @@ uv = "latest"
 herdr = "latest"
 "github:sinelaw/fresh" = "latest"
 
-# System packages and apps, installed by mise bootstrap. Homebrew casks
-# download the vendor's own installer (check with `brew info --cask <name>`).
+# System packages and apps, installed by mise bootstrap with each platform's
+# package manager; entries for a manager that isn't installed are skipped.
+# "latest" means "installed"; mise doesn't upgrade them. On macOS, git, curl
+# and jq come with the system. Homebrew casks download the vendor's own
+# installer (check with `brew info --cask <name>`).
 [bootstrap.packages]
+# Needed by the dotfiles scripts (stow and jq until migration phase 6)
+"pacman:git" = "latest"
+"pacman:stow" = "latest"
+"pacman:curl" = "latest"
+"pacman:jq" = "latest"
+"apt:git" = "latest"
+"apt:stow" = "latest"
+"apt:curl" = "latest"
+"apt:jq" = "latest"
+"brew:stow" = { os = "macos" }
+
+# Shell and font
+"pacman:fish" = "latest"
+"apt:fish" = "latest"
+"brew:fish" = { os = "macos" }
+"pacman:ttf-jetbrains-mono-nerd" = "latest"
+"apt:fonts-jetbrains-mono" = "latest"
+"brew-cask:font-jetbrains-mono-nerd-font" = { os = "macos" }
+
+# macOS apps (btop comes from [tools] on Linux)
+"brew:btop" = { os = "macos" }
 "brew-cask:firefox" = { os = "macos" }
 
 # macOS preferences, applied by mise bootstrap (Linux skips them). Some only

@@ -2,7 +2,7 @@
 
 A phased plan to hand machine setup to `mise bootstrap` and mise dotfiles, across Omarchy, macOS, WSL and Ubuntu. Every phase reaches machines through `dotfiles-update`, works on a machine that has skipped earlier phases, and can be rolled back by reverting its commits.
 
-Status: phase 0 done (verified on penny and the Mac); phase 1 in progress.
+Status: phases 0 and 1 done (verified on penny and the Mac); phase 2 in progress.
 
 ## Where it ends up
 
@@ -55,10 +55,10 @@ Machines update at different times, and one might skip several phases in a singl
 6. **Links move from stow to mise without being recreated.** Mise's relative links match stow's, so mise treats existing stow links as already applied (tested). Moving a package from stow to mise is a config change only, and stow can take the links back if a phase is reverted.
 7. **Roll out one machine at a time.** penny first, then the Mac, then WSL. Run `mise bootstrap --dry-run` before the first update of each phase on each machine. Revert the phase's commits to roll back.
 
-## Decisions still open
+## Decisions
 
-- **Login shell on Omarchy (phase 4).** Recommended: bash as the login shell, handing over to fish for interactive use, which is how Omarchy's own `omarchy-fish` package is designed. Omarchy then sets `OMARCHY_PATH` itself, so `omarchy-update` works over SSH with nothing of ours to maintain. Alternative: keep fish as the login shell on penny too, and run `bash -lc omarchy-update` when updating over SSH.
-- **Daily "updates available" notice (phase 6).** Recommended: keep it as it is. It's small and mise has no equivalent. Alternative: drop it and run `dotfiles-update` when you choose.
+- **Login shell on Omarchy (phase 4):** fish, the same as every other machine. When updating Omarchy over SSH, run `bash -lc omarchy-update`, since fish logins don't get `OMARCHY_PATH`.
+- **Daily "updates available" notice (phase 6):** kept as it is.
 
 ## Phases
 
@@ -106,7 +106,9 @@ Work:
 
 - Move the packages from `dotfiles.json` and `system/core-packages.json` into `[bootstrap.packages]`, with each manager's own name: `pacman:ttf-jetbrains-mono-nerd`, `apt:fonts-jetbrains-mono`, `brew-cask:font-jetbrains-mono-nerd-font`, and so on.
 - Keep `stow` and `jq` in the list until phase 6, since the remaining scripts use them.
-- The installer's package step becomes part of its `mise bootstrap` run.
+- On macOS, git, curl and jq come with the system, so they have no Homebrew entries.
+- The installer installs packages first, with mise pointed at the repo's copy of the config (`MISE_CONFIG_DIR`), because stow, which links that config, is itself one of the packages.
+- `dotfiles-doctor` lists package state from `mise bootstrap packages status`, and `dotfiles-validate` only checks configs.
 
 Migrations: none. The packages are already installed, so mise finds nothing to do.
 
@@ -142,14 +144,13 @@ Mise sets the login shell.
 Work:
 
 - Fish as the login shell in `[bootstrap.user]`, which also adds it to `/etc/shells`.
-- On Omarchy, the `dotfiles-omarchy` module applies the open decision above.
 - To check first: whether `login_shell` can differ per module, and whether mise finds Homebrew's fish on macOS.
 
 Migrations: none. Mise compares and changes the shell itself.
 
 Removes: the `/etc/shells` and login shell functions in `dotfiles-lib.sh`.
 
-Exit check: a fresh SSH login to each machine lands in fish, and `omarchy-update` works on penny over SSH.
+Exit check: a fresh SSH login to each machine lands in fish, and `bash -lc omarchy-update` works on penny over SSH.
 
 Risk: changing the login shell over SSH. Keep a second session open and test a new login before closing it.
 
@@ -187,8 +188,8 @@ Exit check: a fresh install from the README works on each platform, and `mise bo
 
 ## Risks
 
-- **Mise is changing quickly.** Bootstrap and dotfiles are new, with settings due to be renamed in 2027. `min_version` protects against old versions; read the changelog before raising it.
-- **Omarchy decides when mise updates on penny.** If it lags behind `min_version`, updates stop until it catches up.
+- **Mise is changing quickly.** Bootstrap and dotfiles are new, with settings due to be renamed in 2027. `MISE_MIN_VERSION` protects against old versions; read the changelog before raising it.
+- **Omarchy decides when mise updates on penny.** If it lags behind `MISE_MIN_VERSION`, updates stop until it catches up.
 - **Tested on Linux only.** The module behaviour, trust setting and link handling were tested on penny with mise 2026.11.6. macOS and WSL are first exercised in phases 0 and 1.
 - **`mise bootstrap status --missing` always fails on Omarchy.** Omarchy's system mise config lists about 30 tools that install on first use, and status counts them as missing. Exit checks and the doctor need to ignore those tools rather than rely on the command's exit code.
 - **`MISE_ENV` applies only where it's set:** fish shells and the install and update commands. Tools stay in the shared config, so anything else that runs mise still finds them.

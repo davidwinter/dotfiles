@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Validate dotfiles JSON configuration
-# Enhanced: prints which packages/configs will be applied vs ignored,
-# including platform conditionals for ignored items.
+# Prints which configs will be applied vs ignored, including platform
+# conditionals for ignored items. System packages live in the mise config
+# ([bootstrap.packages]), which mise validates itself.
 
 set -euo pipefail
 
@@ -53,7 +54,7 @@ validate_config() {
     echo "  Checking structure..."
     local missing_keys
     missing_keys=$(jq -r '
-        ["packages", "configs"] as $required
+        ["configs"] as $required
         | $required - (. | keys)
         | if length > 0 then "Missing required keys: " + (join(", ")) else empty end
     ' "$CONFIG_FILE")
@@ -63,30 +64,9 @@ validate_config() {
         ((errors++))
     fi
 
-    # Check packages is an array
-    if ! jq -e '.packages | type == "array"' "$CONFIG_FILE" >/dev/null; then
-        echo "  ❌ 'packages' must be an array"
-        ((errors++))
-    fi
-
     # Check configs is an array
     if ! jq -e '.configs | type == "array"' "$CONFIG_FILE" >/dev/null; then
         echo "  ❌ 'configs' must be an array"
-        ((errors++))
-    fi
-
-    # Validate package objects have required fields
-    echo "  Checking packages..."
-    local invalid_packages
-    invalid_packages=$(jq -r '
-        .packages[]
-        | select(type == "object")
-        | select(has("name") | not)
-        | "Package object missing required field: name"
-    ' "$CONFIG_FILE" 2>/dev/null || true)
-
-    if [[ -n "$invalid_packages" ]]; then
-        echo "  ❌ $invalid_packages"
         ((errors++))
     fi
 
@@ -111,7 +91,7 @@ validate_config() {
     local invalid_platforms
     invalid_platforms=$(jq -r --argjson valid "$valid_platforms" '
         [
-            (.packages[], .configs[])
+            .configs[]
             | select(type == "object")
             | select(has("platforms"))
             | .platforms
@@ -137,7 +117,7 @@ validate_config() {
     local invalid_traits
     invalid_traits=$(jq -r --argjson valid "$valid_traits" '
         [
-            (.packages[], .configs[])
+            .configs[]
             | select(type == "object")
             | select(has("traits"))
             | .traits[]?
@@ -172,82 +152,6 @@ validate_config() {
     echo "📊 Summary (evaluated for platform: '$platform', traits: '$host_traits_display')"
     echo
 
-    # Packages: produce a JSON line per package with computed fields:
-    # id, kind (string|object), applies (true/false), resolved (package name to install, if applicable),
-    # platforms_repr / traits_repr (human-friendly representation of conditionals)
-    echo "   📦 Packages:"
-    jq -c --arg platform "$platform" --argjson host_traits "$host_traits" '
-      .packages[]
-      | if type == "string" then
-          {id: ., kind: "string", applies: true, resolved: ., platforms_repr: null, traits_repr: null}
-        else
-          . as $p
-          | ( $p.name // "" ) as $id
-          | ( $p.platforms // null ) as $plat
-          | ( $p.traits // null ) as $trts
-          | ( if $trts == null then true
-              else ($trts | any(. as $t | $host_traits | index($t))) end
-            ) as $traits_match
-          | ( if ($plat | type) == "array" then
-                ($plat | any(. == $platform or . == "linux"))
-              elif ($plat | type) == "object" then
-                ( ($plat[$platform] != null) or (($plat["linux"] != null) and ($platform != "macos")) )
-              else
-                true
-              end
-            ) as $plat_match
-          | ($traits_match and $plat_match) as $applies
-          | ( if ($plat | type) == "object" then
-                ( if $plat[$platform] != null then $plat[$platform]
-                  elif ($plat["linux"] != null) and ($platform != "macos") then $plat["linux"]
-                  else $id end )
-              else $id end
-            ) as $resolved
-          | { id: $id,
-              kind: "object",
-              applies: $applies,
-              resolved: $resolved,
-              platforms_repr:
-                ( if $plat == null then null
-                  elif ($plat | type) == "array" then ($plat | join(", "))
-                  elif ($plat | type) == "object" then ($plat | to_entries | map("\(.key)=\(.value)") | join(", "))
-                  else null end ),
-              traits_repr:
-                ( if $trts == null then null
-                  else ($trts | join(", ")) end )
-            }
-        end
-    ' "$CONFIG_FILE" | while IFS= read -r line; do
-        local id resolved applies plat_repr trts_repr filters
-        id=$(jq -r '.id' <<<"$line")
-        applies=$(jq -r '.applies' <<<"$line")
-        resolved=$(jq -r '.resolved // empty' <<<"$line")
-        plat_repr=$(jq -r '.platforms_repr // empty' <<<"$line")
-        trts_repr=$(jq -r '.traits_repr // empty' <<<"$line")
-
-        filters=""
-        [[ -n "$plat_repr" ]] && filters="platforms: $plat_repr"
-        if [[ -n "$trts_repr" ]]; then
-            [[ -n "$filters" ]] && filters="$filters; "
-            filters="${filters}traits: $trts_repr"
-        fi
-
-        if [[ "$applies" == "true" ]]; then
-            if [[ -n "$resolved" && "$resolved" != "$id" ]]; then
-                printf "     ✅ %s -> %s\n" "$id" "$resolved"
-            else
-                printf "     ✅ %s\n" "$id"
-            fi
-        else
-            if [[ -n "$filters" ]]; then
-                printf "     ❌ %s   [%s]\n" "$id" "$filters"
-            else
-                printf "     ❌ %s\n" "$id"
-            fi
-        fi
-    done
-
-    echo
     echo "   📃 Configs:"
     echo "     ✅ scripts   (applied automatically)"
 

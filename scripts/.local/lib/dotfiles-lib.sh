@@ -4,7 +4,6 @@
 # === Configuration ===
 
 DOTFILES_CONFIG="${DOTFILES_DIR:-$HOME/dotfiles}/dotfiles.json"
-CORE_PACKAGES_FILE="${DOTFILES_DIR:-$HOME/dotfiles}/system/core-packages.json"
 
 get_current_platform() {
     if dotfiles-is-macos; then
@@ -28,101 +27,6 @@ get_current_traits() {
 
 get_current_traits_json() {
     get_current_traits | jq -Rn '[inputs | select(length > 0)]'
-}
-
-# === Core packages helpers ===
-# Read core packages defined for the dotfiles system (git, stow, curl, jq, etc.)
-get_core_packages() {
-    if [[ -f "$CORE_PACKAGES_FILE" ]]; then
-        jq -r '.packages[]' "$CORE_PACKAGES_FILE" 2>/dev/null || true
-    fi
-}
-
-# Check if a package is considered a core package
-# Usage: is_core_package <pkgname>
-is_core_package() {
-    local target="$1"
-    if [[ -z "$target" ]]; then
-        return 1
-    fi
-
-    # Read through core packages and compare
-    local cp
-    while IFS= read -r cp; do
-        [[ -z "$cp" ]] && continue
-        if [[ "$cp" == "$target" ]]; then
-            return 0
-        fi
-    done < <(get_core_packages)
-
-    return 1
-}
-
-# Install core packages defined in system/core-packages.json
-# Returns non-zero on first failure
-install_core_packages() {
-    local pkg
-    if [[ -f "$CORE_PACKAGES_FILE" ]]; then
-        while IFS= read -r pkg; do
-            [[ -z "$pkg" ]] && continue
-            if ! ensure_package_installed "$pkg"; then
-                echo "   ⚠️  Failed to install core package: $pkg" >&2
-                return 1
-            fi
-        done < <(get_core_packages)
-    fi
-    return 0
-}
-
-# Check core packages and print status lines (used by dotfiles-doctor)
-check_core_packages() {
-    local pkg
-    if [[ -f "$CORE_PACKAGES_FILE" ]]; then
-        while IFS= read -r pkg; do
-            [[ -z "$pkg" ]] && continue
-            if check_package_installed "$pkg"; then
-                echo "   ✅ $pkg"
-            else
-                echo "   ❌ $pkg"
-            fi
-        done < <(get_core_packages)
-    else
-        echo "   ℹ️  No core packages definition found at $CORE_PACKAGES_FILE"
-    fi
-}
-
-# Get packages from config that apply to current host (platform + traits)
-get_packages_for_host() {
-    local platform=$(get_current_platform)
-    local host_traits=$(get_current_traits_json)
-
-    jq -r --arg platform "$platform" --argjson host_traits "$host_traits" '
-        .packages[]
-        | if type == "string" then
-            .
-        elif type == "object" then
-            if (.traits != null and ((.traits | map(select(. as $t | $host_traits | index($t))) | length) == 0)) then
-                empty
-            elif .platforms then
-                if (.platforms | type) == "array" then
-                    # Array format: check if platform is in list
-                    if (.platforms | map(select(. == $platform or . == "linux")) | length) > 0 then
-                        .name
-                    else empty end
-                elif (.platforms | type) == "object" then
-                    # Object format: get platform-specific package name
-                    if .platforms[$platform] then
-                        .platforms[$platform]
-                    elif .platforms["linux"] and ($platform != "macos") then
-                        .platforms["linux"]
-                    else empty end
-                else empty end
-            else
-                # No platform restriction
-                .name
-            end
-        else empty end
-    ' "$DOTFILES_CONFIG"
 }
 
 # Get configs from config that apply to current host (platform + traits)
@@ -155,18 +59,6 @@ get_configs_for_host() {
     ' "$DOTFILES_CONFIG"
 }
 
-# Get all packages (for validation/listing)
-get_all_packages() {
-    jq -r '
-        .packages[]
-        | if type == "string" then
-            .
-        elif type == "object" then
-            .name
-        else empty end
-    ' "$DOTFILES_CONFIG"
-}
-
 # Get all configs (for validation/listing)
 get_all_configs() {
     # Always include scripts
@@ -193,41 +85,6 @@ elevate_priv() {
     if ! sudo -v; then
         echo "Superuser not granted, aborting installation" >&2
         exit 1
-    fi
-}
-
-# === Package Management ===
-
-check_package_installed() {
-    local pkg="$1"
-
-    if dotfiles-is-macos; then
-        brew list "$pkg" &>/dev/null || dotfiles-has-command "$pkg"
-    elif dotfiles-is-linux; then
-        if dotfiles-is-ubuntu; then
-            dpkg -s "$pkg" &>/dev/null || dotfiles-has-command "$pkg"
-        elif dotfiles-is-arch; then
-            pacman -Q "$pkg" &>/dev/null || dotfiles-has-command "$pkg"
-        fi
-    fi
-}
-
-ensure_package_installed() {
-    local pkg="$1"
-
-    # Return if already installed
-    check_package_installed "$pkg" && return 0
-
-    if dotfiles-is-macos; then
-        brew install "$pkg"
-    elif dotfiles-is-linux; then
-        elevate_priv
-
-        if dotfiles-is-ubuntu; then
-            sudo apt update && sudo apt install -y "$pkg"
-        elif dotfiles-is-arch; then
-            sudo pacman -Syu "$pkg"
-        fi
     fi
 }
 
@@ -391,6 +248,22 @@ apply_mise_bootstrap() {
     else
         echo "   ⚠️  mise bootstrap failed - run it again with: mise bootstrap" >&2
     fi
+}
+
+# System packages live in the mise config ([bootstrap.packages]). On a fresh
+# install that config isn't linked yet, and stow (which links it) is one of
+# the packages, so point mise at the repo's copy for this step.
+install_bootstrap_packages() {
+    MISE_CONFIG_DIR="${DOTFILES_DIR:-$HOME/dotfiles}/configs/mise/.config/mise" \
+        MISE_ENV="$(dotfiles-mise-env)" mise bootstrap --yes --only packages
+}
+
+# Prints each declared package's state; returns 1 if any is missing.
+check_bootstrap_packages() {
+    local status
+    status="$(MISE_ENV="$(dotfiles-mise-env)" mise bootstrap packages status 2>&1)" || true
+    echo "$status" | grep -v 'skipped' | sed 's/^/   /'
+    ! echo "$status" | grep -q ' missing'
 }
 
 # The previous dotfiles-update called this after pulling, and the first update
