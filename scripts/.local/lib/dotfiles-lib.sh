@@ -378,6 +378,9 @@ ensure_1password_ssh_sign() {
 
     elevate_priv
 
+    # A fresh Apple Silicon Mac has no /usr/local/bin until something creates it.
+    sudo mkdir -p "$(dirname "$target")"
+
     if dotfiles-is-macos; then
         sudo ln -s "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" "$target"
     fi
