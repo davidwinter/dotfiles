@@ -107,6 +107,7 @@ herdr = "latest"
 "brew:btop" = { os = "macos" }
 "brew-cask:firefox" = { os = "macos" }
 "brew-cask:ghostty" = { os = "macos" }
+"brew-cask:transmission" = { os = "macos" }
 
 # Mac App Store apps, by App Store ID. Needs the mas tool and you signed in to
 # the App Store. WireGuard's Mac app is only on the App Store (WireGuard LLC).
