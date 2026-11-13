@@ -9,4 +9,16 @@ if [[ ! -f /etc/os-release ]]; then
 fi
 
 source /etc/os-release
+
+# Report derivatives as the distro they build on (e.g. Omarchy has ID=omarchy,
+# ID_LIKE=arch), so platform gating and package managers still match.
+for id in $ID ${ID_LIKE:-}; do
+    case "$id" in
+        arch|ubuntu)
+            echo "$id"
+            exit 0
+            ;;
+    esac
+done
+
 echo "$ID"
