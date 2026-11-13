@@ -24,3 +24,41 @@ herdr = "latest"
 # download the vendor's own installer (check with `brew info --cask <name>`).
 [bootstrap.packages]
 "brew-cask:firefox" = { os = "macos" }
+
+# macOS preferences, applied by mise bootstrap (Linux skips them). Some only
+# take effect after `killall Dock Finder SystemUIServer` or logging out; dark
+# mode needs a log out.
+[bootstrap.macos.dock]
+orientation = "left"
+autohide = true
+tilesize = 36
+show_recents = false
+mru_spaces = false # Mission Control: don't rearrange Spaces by recent use
+apps = ["/System/Applications/System Settings.app"] # Finder is always there
+
+[bootstrap.macos.defaults.NSGlobalDomain]
+AppleInterfaceStyle = "Dark"
+AppleShowAllExtensions = true
+"com.apple.sound.beep.feedback" = 1 # play feedback when volume changes
+
+[bootstrap.macos.defaults."com.apple.WindowManager"]
+EnableStandardClickToShowDesktop = false # clicking the wallpaper doesn't reveal the desktop
+StandardHideWidgets = true # no widgets on the desktop
+
+[bootstrap.macos.defaults."com.apple.finder"]
+NewWindowTarget = "PfHm" # new windows open your home folder, not Recents
+
+[bootstrap.macos.defaults."com.apple.menuextra.clock"]
+ShowSeconds = true
+
+# Control + scroll to zoom. macOS protects this domain: the terminal running
+# the update may need Full Disk Access to write it.
+[bootstrap.macos.defaults."com.apple.universalaccess"]
+closeViewScrollWheelToggle = true
+
+# Caps Lock acts as Escape on every keyboard. hidutil's mapping lasts until
+# restart, so a LaunchAgent sets it again at each login.
+[bootstrap.macos.launchd.agents.caps-lock-escape]
+program = "/usr/bin/hidutil"
+args = ["property", "--set", '{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc":0x700000039,"HIDKeyboardModifierMappingDst":0x700000029}]}']
+run_at_load = true

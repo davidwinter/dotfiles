@@ -20,6 +20,15 @@ On WSL, install 1Password for Windows and turn on its SSH agent there instead.
 3. Install mise: `brew install mise`
 4. Check `jq --version` works. macOS 15 and later include it; on older versions run `brew install jq`.
 
+After installing, a few macOS settings have no dependable command-line setting, so set them once by hand:
+
+- **Default web browser:** System Settings → Desktop & Dock → Default web browser → Firefox. macOS asks you to confirm any change of browser.
+- **Recent items:** System Settings → Control Centre → "Recent documents, applications and servers" → None. This empties the Apple menu's Recent Items, and Finder's Go → Recent Folders.
+- **Finder sidebar:** Finder → Settings → Sidebar, untick Recents.
+- **Spotlight:** System Settings → Spotlight, turn off "Show related content".
+
+The dotfiles set the rest of the macOS preferences (Dock, dark mode, Finder, clock, Caps Lock as Escape and so on) in `configs/mise/.config/mise/config.toml`. Some take effect only after you log out and back in.
+
 ### Arch Linux and Omarchy
 
 A standard Omarchy install already includes `git`, `jq`, mise and 1Password, so only the 1Password setup above is needed.
