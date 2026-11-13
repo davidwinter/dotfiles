@@ -2,7 +2,7 @@
 
 A phased plan to hand machine setup to `mise bootstrap` and mise dotfiles, across Omarchy, macOS, WSL and Ubuntu. Every phase reaches machines through `dotfiles-update`, works on a machine that has skipped earlier phases, and can be rolled back by reverting its commits.
 
-Status: phase 0 done; phase 1 next.
+Status: phase 0 done (verified on penny and the Mac); phase 1 in progress.
 
 ## Where it ends up
 
@@ -81,14 +81,15 @@ Exit check: on each machine, `echo $MISE_ENV` shows the expected modules, and `m
 
 Rollback: revert the commits. Nothing on the machines depends on them yet.
 
-### Phase 1: macOS preferences
+### Phase 1: macOS preferences and apps
 
-The first real use of mise bootstrap: macOS `defaults` settings, applied by every update on the Mac.
+The first real use of mise bootstrap: macOS `defaults` settings and GUI apps, applied by every update on the Mac.
 
 Work:
 
 - Add preferences to the shared config under `[bootstrap.macos.defaults]`, or mise's Dock, Finder, keyboard and trackpad sections. Linux machines skip them.
 - Check them on the Mac with `mise bootstrap macos defaults status`.
+- GUI apps as Homebrew casks in `[bootstrap.packages]` with `os = "macos"`, after checking each cask downloads from the vendor (`brew info --cask <name>`). Mac App Store apps can use `mas:<app id>`. Firefox is the first, as a test.
 
 Migrations: none.
 

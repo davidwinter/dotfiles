@@ -19,3 +19,8 @@ node = "lts"
 uv = "latest"
 herdr = "latest"
 "github:sinelaw/fresh" = "latest"
+
+# System packages and apps, installed by mise bootstrap. Homebrew casks
+# download the vendor's own installer (check with `brew info --cask <name>`).
+[bootstrap.packages]
+"brew-cask:firefox" = { os = "macos" }
