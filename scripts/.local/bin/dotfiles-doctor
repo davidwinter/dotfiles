@@ -58,18 +58,8 @@ echo "📃 Dotfiles:"
 check_dotfiles_linked || echo "   💡 To link them, run: dotfiles-update"
 
 echo
-echo "🐟 Fish Shell:"
-if check_fish_in_etc_shells; then
-    echo "   ✅ Listed in /etc/shells"
-else
-    echo "   ❌ Not in /etc/shells"
-fi
-
-if check_fish_is_default_shell; then
-    echo "   ✅ Default shell"
-else
-    echo "   ❌ Not default shell"
-fi
+echo "🐟 Login shell:"
+check_login_shell || echo "   💡 To set it, run: dotfiles-update (then log in again)"
 
 echo
 echo "📋 Migrations:"

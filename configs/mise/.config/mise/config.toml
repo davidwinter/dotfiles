@@ -103,6 +103,11 @@ herdr = "latest"
 "brew-cask:firefox" = { os = "macos" }
 "brew-cask:ghostty" = { os = "macos" }
 
+# Login shell: mise adds fish to /etc/shells if needed and runs chsh only
+# when the login shell isn't fish already. It takes effect at the next login.
+[bootstrap.user]
+login_shell = "fish"
+
 # macOS preferences, applied by mise bootstrap (Linux skips them). Some only
 # take effect after `killall Dock Finder SystemUIServer` or logging out; dark
 # mode needs a log out.

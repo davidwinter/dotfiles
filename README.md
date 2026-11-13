@@ -84,7 +84,7 @@ The first time you push or pull over SSH, ssh asks you to confirm GitHub's host 
 4. Switches the repo's git remote from HTTPS to SSH.
 5. Links the config files into your home directory through mise, one symlink per file.
 6. Installs the command-line tools in the mise config with `mise install`.
-7. Adds fish to `/etc/shells` and makes it your login shell.
+7. Makes fish your login shell through mise (adding it to `/etc/shells` if needed).
 
 Command-line tools such as starship, eza, lazygit, node and the GitHub CLI are defined in the mise config (`configs/mise`) too.
 
@@ -209,7 +209,7 @@ This will report on:
 - 1Password configuration
 - Git remote configuration
 - Dotfile links
-- Fish shell setup
+- Login shell (fish)
 - Migration status
 
 If issues are found, run `dotfiles-install` to fix them.

@@ -76,13 +76,6 @@ if ensure_git_remote_ssh; then
 fi
 
 echo
-echo "🐟 Fish shell:"
-echo
-
-ensure_fish_in_etc_shells && echo "   ✅ fish is listed in /etc/shells"
-(ensure_fish_is_default_shell && echo "   ✅ fish is your default login shell") || echo "   ❌ Run the following to change shell:    chsh -s \"$(command -v fish)\""
-
-echo
 echo "📋 Migrations:"
 echo
 

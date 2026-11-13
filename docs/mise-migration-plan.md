@@ -2,7 +2,7 @@
 
 A phased plan to hand machine setup to `mise bootstrap` and mise dotfiles, across Omarchy, macOS, WSL and Ubuntu. Every phase reaches machines through `dotfiles-update`, works on a machine that has skipped earlier phases, and can be rolled back by reverting its commits.
 
-Status: phases 0 to 2 done (verified on penny and the Mac); phase 3 in progress.
+Status: phases 0 to 3 done (verified on penny and the Mac); phase 4 in progress.
 
 ## Where it ends up
 
@@ -145,11 +145,12 @@ Mise sets the login shell.
 Work:
 
 - Fish as the login shell in `[bootstrap.user]`, which also adds it to `/etc/shells`.
-- To check first: whether `login_shell` can differ per module, and whether mise finds Homebrew's fish on macOS.
+- `login_shell = "fish"` is a command name: mise finds it on `PATH`. The packages step runs first, so Homebrew's fish is in place on a new Mac (the README has you add Homebrew to `PATH` before installing).
+- `dotfiles-doctor` checks the shell with `mise bootstrap user status`.
 
 Migrations: none. Mise compares and changes the shell itself.
 
-Removes: the `/etc/shells` and login shell functions in `dotfiles-lib.sh`.
+Removes: the `/etc/shells` and login shell functions in `dotfiles-lib.sh`, and the installer's fish shell step.
 
 Exit check: a fresh SSH login to each machine lands in fish, and `bash -lc omarchy-update` works on penny over SSH.
 

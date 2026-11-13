@@ -164,7 +164,6 @@ dotfiles/
 - Checks mise is installed and new enough (`check_mise_ready`), then runs `mise bootstrap` (`apply_mise_bootstrap`): packages, dotfile links, macOS preferences and tools. It points mise at the repo's copy of the config, so it works before anything is linked
 - Sets up 1Password SSH agent integration using `ensure_1password_agent` and `ensure_1password_ssh_sign`
 - Switches git remote from HTTPS to SSH using `ensure_git_remote_ssh`
-- Makes Fish the default shell using `ensure_fish_in_etc_shells` and `ensure_fish_is_default_shell`
 - Marks all existing migrations as applied (only on fresh installs)
 - Idempotent - safe to run multiple times
 
@@ -694,8 +693,8 @@ System packages and macOS apps are declared under `[bootstrap.packages]` in `con
 
 ### Fish Shell Change
 - **Issue**: chsh may not work in all environments (containers, etc.)
-- **Impact**: Installation "succeeds" but Fish isn't default shell
-- **Workaround**: Script provides manual chsh command to run
+- **Impact**: `mise bootstrap` reports the failure, and fish isn't the login shell
+- **Workaround**: `dotfiles-doctor` reports the login shell; run `chsh -s "$(command -v fish)"` by hand
 
 ### Review backlog (2026-10-03)
 Found in a project review and deliberately deferred. Pick these up individually.
@@ -795,7 +794,6 @@ Found in a project review and deliberately deferred. Pick these up individually.
 9. Checks mise, then runs `mise bootstrap` with the repo's copy of the mise config (`apply_mise_bootstrap`): installs packages, links dotfiles, applies macOS preferences, installs tools
 10. Sets up 1Password agent socket and op-ssh-sign symlinks (using `ensure_1password_agent` and `ensure_1password_ssh_sign`)
 11. Switches git remote from HTTPS to SSH (using `ensure_git_remote_ssh`)
-13. Adds fish to /etc/shells and sets as default shell (using `ensure_fish_in_etc_shells` and `ensure_fish_is_default_shell`)
 14. Marks all existing migrations as applied (only on fresh installs)
 15. Displays success messages with status indicators
 
@@ -818,7 +816,7 @@ Found in a project review and deliberately deferred. Pick these up individually.
    - 1Password agent socket and SSH sign helper configured
    - Git remote using SSH
    - Dotfiles linked (from `mise dot status`)
-   - Fish shell in /etc/shells and set as default
+   - Login shell is fish (from `mise bootstrap user status`)
    - All migrations applied
 4. Reports status with ✅ for OK, ❌ for issues
 5. Suggests running `dotfiles-install` to fix any issues found

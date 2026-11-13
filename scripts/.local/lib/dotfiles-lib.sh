@@ -210,44 +210,19 @@ ensure_git_remote_ssh() {
     fi
 }
 
-# === Fish Shell ===
+# === Login shell ===
 
-check_fish_in_etc_shells() {
-    local fish_path="${1:-$(command -v fish 2>/dev/null || true)}"
-    [[ -n "$fish_path" ]] && grep -Fxq "$fish_path" /etc/shells 2>/dev/null
-}
-
-ensure_fish_in_etc_shells() {
-    local fish_path="${1:-$(command -v fish 2>/dev/null || true)}"
-
-    # Return if already in /etc/shells
-    check_fish_in_etc_shells "$fish_path" && return 0
-
-    elevate_priv
-
-    printf '%s\n' "$fish_path" | sudo tee -a /etc/shells
-}
-
-check_fish_is_default_shell() {
-    local fish_path="${1:-$(command -v fish 2>/dev/null || true)}"
-    local current_shell
-
-    if dotfiles-is-macos; then
-        current_shell=$(dscl . -read "/Users/$(whoami)" UserShell 2>/dev/null | awk '{print $2}' || true)
-    else
-        current_shell=$(getent passwd "$(whoami)" 2>/dev/null | cut -d: -f7 || true)
+# Prints the login shell state from mise ([bootstrap.user]); returns 1 if it
+# isn't the configured shell yet. Status columns: wanted, current, state.
+check_login_shell() {
+    local wanted current state
+    read -r wanted current state < <(dotfiles_mise bootstrap user status 2>/dev/null | head -1)
+    if [[ "$state" == "set" ]]; then
+        echo "   ✅ Login shell is $current"
+        return 0
     fi
-
-    [[ "$current_shell" == "$fish_path" ]]
-}
-
-ensure_fish_is_default_shell() {
-    local fish_path="${1:-$(command -v fish 2>/dev/null || true)}"
-
-    # Return if already default
-    check_fish_is_default_shell "$fish_path" && return 0
-
-    chsh -s "$fish_path"
+    echo "   ❌ Login shell is ${current:-unknown}, not ${wanted:-the configured shell} (${state:-no status})"
+    return 1
 }
 
 # === Migrations ===
