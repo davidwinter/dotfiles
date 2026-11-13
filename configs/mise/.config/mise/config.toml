@@ -36,6 +36,9 @@ show_recents = false
 mru_spaces = false # Mission Control: don't rearrange Spaces by recent use
 apps = ["/System/Applications/System Settings.app"] # Finder is always there
 
+[bootstrap.macos.finder]
+preferred_view_style = "column"
+
 [bootstrap.macos.defaults.NSGlobalDomain]
 AppleInterfaceStyle = "Dark"
 AppleShowAllExtensions = true
