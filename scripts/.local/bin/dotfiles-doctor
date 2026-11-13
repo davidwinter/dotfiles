@@ -54,27 +54,12 @@ else
 fi
 
 echo
-echo "📃 Configurations:"
-
-report_config() {
-    local name="$1" not_linked
-    if not_linked=$(check_dotfiles_config_present "$@"); then
-        echo "   ✅ $name"
-    else
-        echo "   ❌ $name"
-        if [[ -n "$not_linked" ]]; then
-            sed 's/^/      not linked: /' <<< "$not_linked"
-        fi
-    fi
-}
-
-report_config "scripts" "."
-
-while IFS= read -r config; do
-    [[ "$config" == "scripts" ]] && continue
-
-    report_config "$config"
-done < <(get_configs_for_host)
+echo "📃 Dotfiles:"
+if check_dotfiles_linked; then
+    echo "   ✅ All linked"
+else
+    echo "   ❌ Not linked (run: dotfiles-update)"
+fi
 
 echo
 echo "🐟 Fish Shell:"

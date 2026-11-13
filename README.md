@@ -2,7 +2,7 @@
 
 ## Before you install
 
-The installer needs `git`, `jq`, `curl` and [mise](https://mise.jdx.dev) 2026.11.6 or newer, and uses your system package manager (Homebrew, apt or pacman) to install the rest. 1Password provides SSH keys and commit signing on machines you use directly.
+The installer needs `git`, `curl` and [mise](https://mise.jdx.dev) 2026.11.6 or newer, and uses your system package manager (Homebrew, apt or pacman) to install the rest. 1Password provides SSH keys and commit signing on machines you use directly.
 
 ### 1Password (all desktop machines)
 
@@ -18,7 +18,6 @@ On WSL, install 1Password for Windows and turn on its SSH agent there instead.
 1. Set up 1Password as above.
 2. Install [Homebrew](https://brew.sh). It installs the Xcode command line tools for you, which include `git`, so there's no need to install those separately. When it finishes, run the `eval "$(/opt/homebrew/bin/brew shellenv)"` line it prints so `brew` works in the current terminal.
 3. Install mise: `brew install mise`
-4. Check `jq --version` works. macOS 15 and later include it; on older versions run `brew install jq`.
 
 After installing, a few macOS settings have no dependable command-line setting, so set them once by hand:
 
@@ -32,12 +31,12 @@ The dotfiles set the rest of the macOS preferences (Dock, dark mode, Finder, clo
 
 ### Arch Linux and Omarchy
 
-A standard Omarchy install already includes `git`, `jq`, mise and 1Password, so only the 1Password setup above is needed.
+A standard Omarchy install already includes `git`, mise and 1Password, so only the 1Password setup above is needed.
 
 On plain Arch:
 
 ```bash
-sudo pacman -S --needed git jq curl mise
+sudo pacman -S --needed git curl mise
 ```
 
 Then install 1Password and set it up as above.
@@ -45,7 +44,7 @@ Then install 1Password and set it up as above.
 ### Ubuntu
 
 ```bash
-sudo apt install git jq curl
+sudo apt install git curl
 ```
 
 Install mise using [its installation guide](https://mise.jdx.dev/installing-mise.html) (the apt repository keeps it up to date). On a desktop, install 1Password and set it up as above.
@@ -83,11 +82,11 @@ The first time you push or pull over SSH, ssh asks you to confirm GitHub's host 
 2. Installs system packages and apps through mise, with Homebrew, apt or pacman: GNU Stow, fish, a JetBrains Mono Nerd Font, and on macOS btop and Firefox. The list lives under `[bootstrap.packages]` in `configs/mise/.config/mise/config.toml`.
 3. Links 1Password's SSH agent socket (macOS) and its `op-ssh-sign` helper into `/usr/local/bin`. Skipped when installing over SSH.
 4. Switches the repo's git remote from HTTPS to SSH.
-5. Links the config files into your home directory with GNU Stow.
+5. Links the config files into your home directory through mise, one symlink per file.
 6. Installs the command-line tools in the mise config with `mise install`.
 7. Adds fish to `/etc/shells` and makes it your login shell.
 
-Command-line tools such as starship, eza, lazygit, node and the GitHub CLI are defined in the mise config (`configs/mise`), not in `dotfiles.json`.
+Command-line tools such as starship, eza, lazygit, node and the GitHub CLI are defined in the mise config (`configs/mise`) too.
 
 ## Remote / headless install
 
@@ -118,7 +117,6 @@ The dotfiles include helper scripts for common tasks:
 - `dotfiles-update` - Pull latest changes from git and run migrations
 - `dotfiles-check-updates` - Check for updates without applying
 - `dotfiles-doctor` - Check dotfiles health and report any issues
-- `dotfiles-validate` - Validate the dotfiles.json configuration file
 
 ### Migration Scripts
 - `dotfiles-add-migration` - Create a new migration file
@@ -142,10 +140,10 @@ These helper scripts are available in your PATH after installation and are used 
 
 ## Configuration
 
-Configuration is split between two files while the dotfiles move to mise bootstrap (see `docs/mise-migration-plan.md`):
+Everything is configured in the mise config, `configs/mise/.config/mise/` (see `docs/mise-migration-plan.md`):
 
-- **`configs/mise/.config/mise/config.toml`** - tools, system packages and apps (`[bootstrap.packages]`), and macOS preferences. Limit an entry to one OS with `os = "macos"` or `os = "linux"`, or to one package manager with its prefix (`pacman:`, `apt:`, `brew:`, `brew-cask:`); mise skips entries for a package manager that isn't installed.
-- **`dotfiles.json`** - which config directories to link with Stow.
+- **`config.toml`** applies to every machine: tools, system packages and apps (`[bootstrap.packages]`), dotfile groups, and macOS preferences. Limit an entry to one OS with `os = "macos"` or `os = "linux"`, or to one package manager with its prefix (`pacman:`, `apt:`, `brew:`, `brew-cask:`); mise skips entries for a package manager that isn't installed.
+- **`config.dotfiles-<module>.toml`** files hold config for some machines only. Each machine works out its own modules (`dotfiles-mise-env`), for example `dotfiles-macos`, `dotfiles-arch`, `dotfiles-omarchy`, `dotfiles-wsl` and `dotfiles-1password`.
 
 ### Adding a system package
 
@@ -160,86 +158,19 @@ Add one entry per package manager, using that manager's package name:
 
 `"latest"` means "make sure it's installed"; mise doesn't upgrade it. Machines pick up new entries on their next `dotfiles-update`.
 
-### Config directories in `dotfiles.json`
+### Adding config files
 
-```json
-{
-  "configs": [
-    "git",
-    "ssh",
-    "starship"
-  ]
-}
-```
+Each directory under `configs/` mirrors where its files go in your home directory: `configs/git/.gitconfig` is linked to `~/.gitconfig`, one symlink per file, with directories kept real.
 
-**Note:** The `scripts` config is automatically included and should not be added to the JSON file.
+- **A new file in an existing package** needs nothing else. It's linked on the next `dotfiles-update`.
+- **A new package for every machine:** create `configs/<package>/`, then add it to `dotfile_groups` with a matching `[dotfile_groups.<package>]` table in `config.toml`.
+- **Files for some machines only:** add a `[dotfiles]` entry for each file to the right `config.dotfiles-<module>.toml`, as `config.dotfiles-omarchy.toml` does.
 
-#### Platform-Specific Configs
+Check with `mise bootstrap --dry-run` before updating.
 
-For configs that only apply to certain platforms:
+### Supported platforms and modules
 
-```json
-{
-  "configs": [
-    {
-      "name": "ghostty-macOS",
-      "platforms": ["macos"]
-    },
-    {
-      "name": "omarchy",
-      "platforms": ["arch"]
-    }
-  ]
-}
-```
-
-### Supported Platform Identifiers
-
-- **`macos`** - macOS
-- **`arch`** - Arch Linux, and distributions based on it such as Omarchy
-- **`ubuntu`** - Ubuntu, and distributions based on it such as Pop!_OS
-
-Distributions based on Arch or Ubuntu are detected through `ID_LIKE` in `/etc/os-release`. Other distributions report their own `ID` (for example `debian` or `fedora`), and mise only installs packages from the package managers it supports. WSL is a trait, not a platform: WSL running Ubuntu has the platform `ubuntu` and the trait `wsl`.
-
-#### Trait-Gated Items
-
-`platforms` answers "what OS"; `traits` answers "what kind of host". Add a `traits` field alongside (or instead of) `platforms` to gate an item on host characteristics:
-
-```json
-{
-  "configs": [
-    {
-      "name": "git-1password",
-      "traits": ["desktop"]
-    },
-    {
-      "name": "git-wsl",
-      "traits": ["wsl"]
-    }
-  ]
-}
-```
-
-When both `platforms` and `traits` are set on an item, **both must match** (AND between fields, OR within each list).
-
-### Supported Traits
-
-- **`desktop`** - Host is not currently an SSH session (i.e., the install is running locally on the machine, not over SSH). Use this to gate items that require GUI apps like 1Password.
-- **`wsl`** - Host is running under Windows Subsystem for Linux.
-
-### Validating Configuration
-
-To validate your `dotfiles.json` configuration (mise checks its own config and warns about anything it doesn't recognise):
-
-```bash
-dotfiles-validate
-```
-
-This will check for:
-- Valid JSON syntax
-- Required fields (configs)
-- Proper object structure
-- Valid platform identifiers
+Distributions based on Arch or Ubuntu are detected through `ID_LIKE` in `/etc/os-release`, so Omarchy gets `dotfiles-arch` (plus `dotfiles-omarchy`) and Pop!_OS gets `dotfiles-ubuntu`. Other distributions get a module named after their own `ID`, and mise only installs packages from the package managers it supports. WSL running Ubuntu gets `dotfiles-ubuntu` and `dotfiles-wsl`.
 
 ## Updating
 
@@ -277,7 +208,7 @@ This will report on:
 - Installed packages
 - 1Password configuration
 - Git remote configuration
-- Stowed configurations
+- Dotfile links
 - Fish shell setup
 - Migration status
 

@@ -2,7 +2,7 @@
 
 A phased plan to hand machine setup to `mise bootstrap` and mise dotfiles, across Omarchy, macOS, WSL and Ubuntu. Every phase reaches machines through `dotfiles-update`, works on a machine that has skipped earlier phases, and can be rolled back by reverting its commits.
 
-Status: phases 0 and 1 done (verified on penny and the Mac); phase 2 in progress.
+Status: phases 0 to 2 done (verified on penny and the Mac); phase 3 in progress.
 
 ## Where it ends up
 
@@ -47,7 +47,7 @@ What stays as scripts: `bootstrap` (the curl one-liner), `dotfiles-update`, `dot
 
 Machines update at different times, and one might skip several phases in a single update. These rules keep every machine working whatever state it starts from.
 
-1. **Every change arrives through `dotfiles-update`.** It runs in a fixed order: pull, run migrations, link configs (stow until phase 3, then only the mise package), run `mise bootstrap`. Migrations come before mise, so they can prepare a machine for the config that follows.
+1. **Every change arrives through `dotfiles-update`.** It runs in a fixed order: pull, check mise, run migrations, run `mise bootstrap` (which, from phase 3, also links the dotfiles). Migrations come before mise, so they can prepare a machine for the config that follows.
 2. **The update runs the version it just pulled.** Today an update keeps running the old copy of itself after pulling, so a change to the update steps only takes effect on the following update. Phase 0 makes it restart itself after pulling, so each phase's new steps run in the same update that delivers them.
 3. **Any phase can be skipped to.** A machine several phases behind runs every pending migration in order, against the current repo. So migrations must be safe to run more than once, must check before they act, and must use plain commands rather than `dotfiles-*` scripts that a later phase might remove. Each phase is checked against a machine coming straight from phase 0.
 4. **Fresh installs land on the latest state.** Each phase updates the install path in the same commits. A new machine installs straight into the current state, and the installer marks every existing migration as applied, as it does today.
@@ -120,22 +120,23 @@ Rollback: revert the commits. Installed packages stay installed.
 
 ### Phase 3: mise links the dotfiles
 
-Mise links every config. Stow only links the mise config itself, which mise needs before it can run.
+Mise links every config, including its own, and stow stops linking anything.
 
 Work:
 
-- Shared packages become dotfile groups, listed once in the shared config: git, ssh, fish, starship, hushlogin, nano, vim, claude, zed and the scripts. `.gitignore` is excluded in `fish` and `ssh`.
-- Machine-specific files become individual entries in their module, seven in all: omarchy's 3, git-1password's 2, ghostty's 1 and git-wsl's 1. Modules can't each add groups, because a later module's group list replaces earlier ones; individual entries combine (tested).
-- Turn on mise's dotfile history before the first apply, so overwriting a conflicting file with `--force` can be undone.
-- Remove those packages from `dotfiles.json`, which keeps only `mise`.
+- Every package for all machines becomes a dotfile group in the shared config, with `mode = "symlink-each"` (one link per file, directories kept real, like `stow --no-folding`): git, ssh, fish, starship, hushlogin, nano, vim, mise, claude, zed, and scripts (`root = "../scripts"`). `.gitignore` is excluded in `fish` and `ssh`.
+- Machine-specific files become individual entries in their module: omarchy's 3, git-1password's 2, ghostty's 1 and git-wsl's 1. Modules can't each add groups, because a later module's group list replaces earlier ones; individual entries combine (tested).
+- Install and update run `mise bootstrap` with `MISE_CONFIG_DIR` pointing at the repo's copy of the mise config (`dotfiles_mise` in `dotfiles-lib.sh`). It works before `~/.config/mise` is linked, and the `mise` group then links it. Packages install before any link is made.
+- Existing files in the way: mise stops before changing any dotfile and names them; the scripts say to move each aside and run again. Mise's dotfile history isn't used.
+- `dotfiles-doctor` checks links with `mise dot status`.
+- `dotfiles.json` and `dotfiles-validate` are removed (nothing is left in them), along with the stow functions, the conflict prompt and the bootstrap script's `jq` check. `jq` leaves the package list; `stow` stays for old migrations until phase 6.
+- `stow_configs_for_host` and `install_mise_tools` stay as stand-ins, because a machine updating from before phase 0 runs its old update script once and calls them.
 
-Migrations: none if a group can point at `scripts/`, which sits outside `configs/`. If it can't, move `scripts/` into `configs/`, with a migration that removes the old `~/.local/bin/dotfiles-*` links before mise links the new ones.
-
-Removes: `configs` entries in `dotfiles.json` with platforms and traits, the stow conflict prompt, the doctor's per-file link check.
+Migrations: `1794575081.sh` removes stow-made links the modules no longer create: git-1password files where the 1Password app isn't installed (WSL), omarchy files on Arch machines that aren't Omarchy, and the link to `dotfiles-validate`.
 
 Exit check: `mise dot status` is clean everywhere, and each machine's dry run showed no link changes before the first apply.
 
-Rollback: revert the commits and run `dotfiles-update`. Stow takes the existing links back.
+Rollback: revert the commits and run `dotfiles-update`. The old update script restows, and stow takes the existing links back.
 
 ### Phase 4: login shell
 
@@ -176,13 +177,13 @@ Remove what mise now does, once every machine has run phases 0 to 5.
 
 Work:
 
-- `bootstrap` clones the repo, links the mise config, sets `MISE_ENV` and runs `mise bootstrap`.
+- `bootstrap` clones the repo, sets `MISE_ENV` and runs `mise bootstrap` against the repo's mise config.
 - `dotfiles-update` becomes pull, migrate, `mise bootstrap`.
 - Rewrite `README.md` and `AI.md` for the new layout.
 
 Migrations: mise's `--prune-dotfiles` removes links to retired scripts, since a group deployed them. A migration covers anything it misses.
 
-Removes: `dotfiles-install`, `dotfiles-doctor`, `dotfiles-validate`, most of `dotfiles-lib.sh`, `dotfiles.json`, `system/`, and `stow` and `jq` from the packages.
+Removes: `dotfiles-install`, `dotfiles-doctor`, most of `dotfiles-lib.sh`, the `stow_configs_for_host` and `install_mise_tools` stand-ins, and `stow` from the packages.
 
 Exit check: a fresh install from the README works on each platform, and `mise bootstrap status --missing` is clean on every machine.
 

@@ -1,0 +1,6 @@
+# Machine-specific mise config, loaded when dotfiles-mise-env lists this module
+# in MISE_ENV. See docs/mise-migration-plan.md.
+
+# WSL: git uses Windows ssh and 1Password
+[dotfiles]
+"~/.config/git/config-wsl" = "~/dotfiles/configs/git-wsl/.config/git/config-wsl"

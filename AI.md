@@ -4,7 +4,7 @@
 
 **Name**: dotfiles  
 **Purpose**: Personal configuration management system for consistent development environments across multiple devices and operating systems  
-**Primary Technologies**: Bash, Fish shell, GNU Stow, 1Password SSH Agent  
+**Primary Technologies**: Bash, Fish shell, mise (bootstrap and dotfiles), 1Password SSH Agent  
 **Repository**: davidwinter/dotfiles  
 
 ### Migration to mise bootstrap (in progress)
@@ -33,10 +33,9 @@ bootstrap (minimal script)
         ↓
 dotfiles-install (main installer)
     ├─ Uses: helper scripts for all OS detection
-    ├─ Installs: packages (brew/apt/pacman)
+    ├─ Runs: mise bootstrap (packages, dotfile links, macOS preferences, tools)
     ├─ Sets up: 1Password SSH agent + signing
     ├─ Switches: git remote HTTPS → SSH
-    ├─ Stows: config packages (symlinks)
     └─ Configures: Fish as default shell
         ↓
 Helper Scripts (composable utilities)
@@ -65,11 +64,11 @@ Used by:
 
 ### Key Design Decisions
 
-#### Why GNU Stow?
-- **Decision**: Use GNU Stow for symlink management
-- **Rationale**: Simple, transparent, easy to understand what's happening
-- **Trade-off**: Less flexible than chezmoi/yadm but much simpler
-- **Implementation**: Each tool/config is a separate "stow package"
+#### Why mise for setup and linking?
+- **Decision**: Use `mise bootstrap` for packages, dotfile links, macOS preferences and tools (replacing GNU Stow and hand-written install code; see `docs/mise-migration-plan.md`)
+- **Rationale**: One declarative config; mise only changes what differs, so every run converges a machine to the config and new files need no migration
+- **Trade-off**: Mise is young and changing quickly, so `MISE_MIN_VERSION` gates install and update
+- **Implementation**: Each directory under `configs/` (and `scripts/`) is a dotfile group linked into `~` with one symlink per file (`symlink-each`, like `stow --no-folding`); machine-specific files are entries in `config.dotfiles-<module>.toml` modules
 
 #### Why 1Password SSH Agent?
 - **Decision**: Use 1Password for SSH key and git signing management
@@ -81,14 +80,14 @@ Used by:
 - **Decision**: Use Fish as default shell instead of Bash/Zsh
 - **Rationale**: Better defaults, modern syntax, good auto-completion
 - **Trade-off**: Not POSIX-compatible but installer still uses Bash
-- **Implementation**: Fish config managed via stow, set as default shell
+- **Implementation**: Fish config linked by mise, set as default shell
 
 ## Project Structure
 
 ```
 dotfiles/
 ├── bootstrap             # Minimal bootstrap script (entry point for one-liner install)
-├── configs/              # Stow packages for user configurations
+├── configs/              # Config packages, each linked into ~ by mise (one symlink per file)
 │   ├── fish/             # Fish shell configuration
 │   │   └── .config/fish/config.fish
 │   ├── git/              # Git configuration
@@ -101,9 +100,12 @@ dotfiles/
 │   ├── vim/              # Vim configuration
 │   ├── nano/             # Nano configuration
 │   ├── hushlogin/        # Suppress login messages
-│   ├── omarchy/          # Arch Linux specific configs
-│   └── ghostty-macOS/    # Ghostty terminal config for macOS
-├── scripts/              # Helper scripts and utilities (stow package at root)
+│   ├── omarchy/          # Omarchy configs (dotfiles-omarchy module)
+│   ├── ghostty-macOS/    # Ghostty terminal config (dotfiles-macos module)
+│   └── mise/.config/mise/
+│       ├── config.toml                 # Packages, dotfile groups, macOS preferences, tools
+│       └── config.dotfiles-*.toml      # Machine-specific modules, chosen by MISE_ENV
+├── scripts/              # Helper scripts and utilities (linked by mise's scripts group)
 │   └── .local/
 │       ├── bin/          # Executable scripts
 │       │   ├── dotfiles-install
@@ -121,8 +123,11 @@ dotfiles/
 │       │   ├── dotfiles-is-wsl
 │       │   ├── dotfiles-is-ubuntu
 │       │   ├── dotfiles-is-arch
+│       │   ├── dotfiles-is-omarchy
+│       │   ├── dotfiles-has-1password
 │       │   ├── dotfiles-has-command
-│       │   └── dotfiles-detect-linux-distro
+│       │   ├── dotfiles-detect-linux-distro
+│       │   └── dotfiles-mise-env      # Prints this machine's mise modules
 │       └── lib/          # Shared library code
 │           └── dotfiles-lib.sh
 ├── migrations/           # Migration scripts for structural changes
@@ -133,11 +138,12 @@ dotfiles/
 └── README.md
 ```
 
-### How Stow Packages Work
-- Each directory represents a stow "package"
-- Files inside mirror their target location in $HOME
-- Example: `git/.gitconfig` gets symlinked to `~/.gitconfig`
-- Running `stow --dir=dotfiles --target=$HOME git` creates the symlink
+### How config packages are linked
+- Each directory under `configs/` is a package whose files mirror their location in `$HOME`; `configs/git/.gitconfig` is linked to `~/.gitconfig`
+- Packages for every machine are dotfile groups in `config.toml` (`mode = "symlink-each"`): one relative symlink per file, directories kept real, so files apps create there stay out of the repo
+- Packages for some machines (omarchy, git-1password, git-wsl, ghostty-macOS) are individual `[dotfiles]` file entries in a `config.dotfiles-<module>.toml` module, because a module's `dotfile_groups` list would replace the shared one
+- `mise bootstrap` (run by install and update) creates any missing link; a new file in the repo is linked on the next `dotfiles-update`
+- Mise stops before changing anything if a target already exists as a real file
 
 ## Key Files Explained
 
@@ -155,17 +161,16 @@ dotfiles/
 **`dotfiles-install`**
 - Main installer script, bootstraps entire system
 - Sources shared library (dotfiles-lib.sh) for all check/ensure functions
-- Checks mise is installed and new enough (`check_mise_ready`), then installs system packages from `[bootstrap.packages]` in the mise config (`install_bootstrap_packages`, which points mise at the repo's config because it isn't linked yet)
+- Checks mise is installed and new enough (`check_mise_ready`), then runs `mise bootstrap` (`apply_mise_bootstrap`): packages, dotfile links, macOS preferences and tools. It points mise at the repo's copy of the config, so it works before anything is linked
 - Sets up 1Password SSH agent integration using `ensure_1password_agent` and `ensure_1password_ssh_sign`
 - Switches git remote from HTTPS to SSH using `ensure_git_remote_ssh`
-- Stows scripts from root and configs from configs/ directory using `ensure_dotfiles_config_present`
 - Makes Fish the default shell using `ensure_fish_in_etc_shells` and `ensure_fish_is_default_shell`
 - Marks all existing migrations as applied (only on fresh installs)
 - Idempotent - safe to run multiple times
 
 **`dotfiles-update`**
-- Pulls latest changes from git repository
-- Automatically runs `dotfiles-migrate` to apply pending migrations
+- Pulls latest changes from git repository, then restarts itself from the version just pulled
+- Checks mise, runs `dotfiles-migrate` to apply pending migrations, then `mise bootstrap`
 - Uses consistent bash style with set -euo pipefail
 
 **`dotfiles-check-updates`**
@@ -183,7 +188,7 @@ dotfiles/
 **`dotfiles-doctor`**
 - Health check script that validates dotfiles installation
 - Sources shared library (dotfiles-lib.sh) for all check functions
-- Reports status of packages, 1Password, git config, stowed configs, fish shell, and migrations
+- Reports status of mise, packages, 1Password, git config, dotfile links (from `mise dot status`), fish shell, and migrations
 - Provides clear feedback on what's working and what needs attention
 - Suggests running `dotfiles-install` to fix issues
 
@@ -233,7 +238,7 @@ dotfiles/
 - 1Password socket: symlink from `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock`
 - op-ssh-sign: symlink from `/Applications/1Password.app/Contents/MacOS/op-ssh-sign`
 - Installs JetBrains Mono Nerd Font via Homebrew cask
-- Stows: ghostty-macOS package
+- Links: Ghostty config (`dotfiles-macos` module)
 
 ### Ubuntu
 - Uses apt for package installation
@@ -245,7 +250,7 @@ dotfiles/
 - Uses pacman for package installation
 - Requires sudo elevation
 - Installs ttf-jetbrains-mono-nerd font
-- Stows: omarchy package for Arch-specific configs
+- Links on Omarchy only: Hyprland and Waybar configs (`dotfiles-omarchy` module)
 
 ### WSL (Windows Subsystem for Linux)
 - Detected via `grep -qi microsoft /proc/version`
@@ -254,36 +259,27 @@ dotfiles/
 - op-ssh-sign path: `/mnt/c/Users/<username>/AppData/Local/1Password/app/8/op-ssh-sign-wsl`
 - Git uses ssh.exe instead of native SSH
 - Different signing key than macOS/Linux machines
-- Stows: git-wsl package (gated on the `wsl` trait, not the platform) to override git configuration
-- `get_current_platform()` returns the underlying distro (e.g. `ubuntu`) on WSL; WSL-ness is exposed via the `wsl` trait so OS-specific package logic still works
+- Links: git-wsl config (`dotfiles-wsl` module) to override git configuration
+- Modules on WSL are `dotfiles-ubuntu,dotfiles-wsl`: packages still come from the underlying distro's manager
 - **Note**: Windows username path is currently hardcoded per-machine
 
-## Traits System
+## Machine modules
 
-`dotfiles.json` entries can be gated on two orthogonal dimensions:
+Machine-specific mise config lives in `configs/mise/.config/mise/config.dotfiles-<module>.toml`. `dotfiles-mise-env` prints the modules for this machine; fish sets `MISE_ENV` from it, and install, update and doctor pass it to mise (`dotfiles_mise` in `dotfiles-lib.sh`).
 
-- **`platforms`** — what OS (`macos`, `ubuntu`, `arch`, …). Existing behaviour, unchanged.
-- **`traits`** — what kind of host (currently `desktop`, `wsl`). New, additive.
+| Module | Applies when (detected by) |
+|---|---|
+| `dotfiles-macos` | macOS (`dotfiles-is-macos`) |
+| `dotfiles-<distro>`, e.g. `dotfiles-arch`, `dotfiles-ubuntu` | Linux, from `dotfiles-detect-linux-distro` (derivatives map via `ID_LIKE`) |
+| `dotfiles-omarchy` | Omarchy (`dotfiles-is-omarchy`) |
+| `dotfiles-wsl` | WSL (`dotfiles-is-wsl`) |
+| `dotfiles-1password` | The 1Password app is installed (`dotfiles-has-1password`), however you're connected |
 
-When both are set on an item, both must match (AND between fields, OR within each list).
+Naming a module with no file is harmless. Prefer an `os` key or a package-manager prefix in the shared `config.toml` over a module; use a module only when nothing in the shared config can express the condition.
 
-### Current traits
-
-- `desktop` — host is not in an SSH session (`$SSH_CONNECTION`/`$SSH_CLIENT` not set). Determined at install time by `dotfiles-is-ssh-session`.
-- `wsl` — host is running under WSL.
-
-### Library functions
-
-- `get_current_platform()` — returns single platform string (underlying distro on WSL).
-- `get_current_traits()` — emits one trait per line for the current host.
-- `get_current_traits_json()` — same, but as a JSON array (for jq).
-- `get_configs_for_host()` — returns the filtered set of configs for the current host (platforms AND traits considered). System packages are no longer in `dotfiles.json`; they live under `[bootstrap.packages]` in the mise config.
-
-### Adding a new trait
-
-1. Update `get_current_traits()` in `dotfiles-lib.sh` to emit the new trait when the host satisfies it.
-2. Add it to the valid traits list in `dotfiles-validate`.
-3. Document it under "Supported Traits" in README.md.
+### Adding a module
+1. Make `dotfiles-mise-env` print it when the machine qualifies, using a `dotfiles-is-*` or `dotfiles-has-*` helper.
+2. Create `config.dotfiles-<name>.toml`. Mise trusts it automatically because it's linked into `~/.config/mise`.
 
 ## Coding Standards & Conventions
 
@@ -344,8 +340,8 @@ Every script and migration must run unchanged on macOS, Ubuntu, Arch and WSL. ma
   - `ensure_*` - Applies configuration to make condition true (uses `check_*` internally)
 - **Examples**:
   - `check_bootstrap_packages` - Prints each mise-declared package's state; returns 1 if any is missing
-  - `check_dotfiles_config_present "fish"` - Returns 0 if every file in the fish config is linked; prints any target that is not
-  - `ensure_dotfiles_config_present "fish"` - Stows fish config if not present
+  - `check_dotfiles_linked` - Returns 0 if every dotfile link is in place; prints any that isn't
+  - `apply_mise_bootstrap` - Runs `mise bootstrap` with this machine's modules and the repo's mise config
 
 ### Helper Script Usage
 ```bash
@@ -553,12 +549,12 @@ Total: 3 (2 applied, 0 skipped, 1 pending)
 
 **When NOT to use migrations:**
 - Changing config values (just update the file)
-- Installing new packages (update installer)
+- Adding files, packages, dotfile groups or macOS preferences (mise applies them on the next update)
 
 **When you MUST use a migration:**
-- Adding new scripts to `scripts/.local/bin/` — existing installs won't get the symlink until stow is re-run. Create a migration that runs `stow --dir="$DOTFILES_DIR" --target="$HOME" --restow scripts`. The migration must not rely on any `dotfiles-*` commands (they may not be stowed yet); use plain `stow` directly.
-- Adding new stow packages that existing users should receive automatically
-- Any structural change that affects existing installations
+- Removing something mise created or used to create, such as a link to a deleted file or a LaunchAgent; mise doesn't remove what a config no longer declares
+- Any one-off structural change mise can't converge by itself
+- Migrations must not rely on `dotfiles-*` commands, which later phases may change or remove; use plain commands
 
 ### Common Patterns
 
@@ -609,7 +605,7 @@ System packages and macOS apps are declared under `[bootstrap.packages]` in `con
 - Give Homebrew entries `os = "macos"` so a Linuxbrew install doesn't pick them up.
 - On macOS, git, curl and jq come with the system, so there are no Homebrew entries for them.
 - Before adding a Homebrew cask, check it downloads from the vendor: `brew info --cask <name>`.
-- The installer runs `install_bootstrap_packages` before stowing, pointing mise at the repo's config (`MISE_CONFIG_DIR`), because stow itself is one of the packages. `dotfiles-update` applies packages as part of its full `mise bootstrap` run.
+- The installer's `mise bootstrap` run points mise at the repo's config (`MISE_CONFIG_DIR`), so packages install before any dotfile is linked. `dotfiles-update` uses the same `apply_mise_bootstrap`.
 
 ## 1Password Integration
 
@@ -630,13 +626,13 @@ System packages and macOS apps are declared under `[bootstrap.packages]` in `con
 
 **Git Signing:**
 - Uses SSH keys instead of GPG keys (`gpg.format = ssh`)
-- On `desktop`-trait machines the `git-1password` package sets `gpg.ssh.program` to the `git-ssh-sign` wrapper (`~/.local/bin/git-ssh-sign`, resolved via PATH), not `op-ssh-sign` directly
+- On machines with the 1Password app (`dotfiles-1password` module) the `git-1password` package sets `gpg.ssh.program` to the `git-ssh-sign` wrapper (`~/.local/bin/git-ssh-sign`, resolved via PATH), not `op-ssh-sign` directly
 - The wrapper dispatches: in an SSH session with a forwarded agent (`$SSH_CONNECTION` and `$SSH_AUTH_SOCK` both set) it signs via `ssh-keygen` through the forwarded agent so the biometric prompt lands on the local machine; otherwise it signs locally via `op-ssh-sign`. This stops a desktop that is also SSH'd into from popping its own 1Password on remote commits
 - Signs commits and tags automatically when configured
 - Public key fingerprint stored in .gitconfig as `user.signingkey`
 
 ### Remote / Headless Installs
-- When installing over SSH (`$SSH_CONNECTION` set), `dotfiles-install` auto-skips the 1Password agent and op-ssh-sign setup, and the `git-1password` stow package is filtered out via its `desktop` trait
+- When installing over SSH (`$SSH_CONNECTION` set), `dotfiles-install` auto-skips the 1Password agent and op-ssh-sign setup. The `git-1password` files are linked wherever the 1Password app is installed (`dotfiles-1password` module), whether or not you're connected over SSH; `git-ssh-sign` picks the forwarded agent while one is live
 - Base `.gitconfig` does not hardcode `gpg.ssh.program`; the override lives in the separate `git-1password` package (which also ships the `git-ssh-sign` wrapper) and is included via `~/.config/git/config-1password` (git silently ignores missing includes)
 - Git signing on remote hosts works through the forwarded SSH agent via native `ssh-keygen` — the user must have `ForwardAgent yes` set for the remote on their local `~/.ssh/config`
 
@@ -649,22 +645,21 @@ System packages and macOS apps are declared under `[bootstrap.packages]` in `con
 - Git signing keys are hardcoded per machine (no templating system)
 - WSL username path hardcoded in 1Password setup
 - We're not using a config file to store user specific configurations, such as repo location or other user-specific settings
-- No automated testing or CI. Suggested minimal setup: a GitHub Action running shellcheck, `dotfiles-validate`, and a fresh-install smoke test in a container that asserts `~/.local` is a real directory and `git-ssh-sign` is linked
-- Stow folding: fresh installs now stow with `--no-folding` (`ensure_dotfiles_config_present` in `dotfiles-lib.sh`). Without it, a fresh machine with no `~/.local` had the whole of `~/.local` folded into `dotfiles/scripts/.local`, which blocked `git-1password` and caused anything written to `~/.local/share` or `~/.local/state` to land in the repo. Older migrations still stow without `--no-folding`; new migrations that stow should pass it. Existing installs are covered by migration `1791027819.sh`, which generically unfolds any config directory still folded into the repo (walks every package's files, finds the first symlinked ancestor under `$HOME`, unfolds it, moves anything untracked by git out of the repo, then re-stows with `--no-folding`) — this superseded `1785260700.sh`'s narrower `~/.local/bin`/`~/.local/lib`-only unfold. As a fallback net, root `.gitignore` and the per-package `.gitignore` files also exclude the known runtime strays (`authorized_keys`, `known_hosts*`, the ssh `agent/` socket dir, `fish_variables`) in case a directory ever folds again. Also be careful with `rm` in migrations: on a folded directory, removing a "regular file" deletes the source file in the repo.
+- No automated testing or CI. Suggested minimal setup: a GitHub Action running shellcheck and a `mise bootstrap --dry-run` in a fresh container
+- Folded directories: links are one per file (`symlink-each`), so no directory is ever a link into the repo. Older stow-based installs were unfolded by migration `1791027819.sh`; root `.gitignore` and the per-package `.gitignore` files (excluded from linking) still list the known runtime strays as a safety net
 
 ## Common Tasks
 
-### Adding a New Stow Package
-1. Create directory: `dotfiles/<package-name>/`
-2. Mirror the target structure: `dotfiles/<package-name>/.config/tool/config`
-3. Add package name to STOW_PACKAGES array in dotfiles-install
-4. Test locally: `stow --dir=. --target=$HOME <package-name>`
+### Adding config files
+1. For every machine: create `configs/<package>/` mirroring the target paths, add a `[dotfile_groups.<package>]` table (`root`, `mode = "symlink-each"`) and add it to `dotfile_groups` in `config.toml`. A new file in an existing package needs nothing else.
+2. For some machines: add `[dotfiles]` entries for each file to the right `config.dotfiles-<module>.toml`.
+3. Check with `mise bootstrap --dry-run` and `mise dot status`, then run `dotfiles-update`.
 
 ### Supporting a New OS
 1. Add detection function: `is_<os>() { ... }`
 2. Update ensure_installed() with package manager logic
 3. Handle 1Password paths in ensure_1password_agent() and ensure_1password_ssh_sign()
-4. Add OS-specific stow packages if needed
+4. Add a machine module or `os`-limited entries in the mise config if needed
 5. Test thoroughly on actual system
 
 ### Modifying Installation Script
@@ -692,10 +687,10 @@ System packages and macOS apps are declared under `[bootstrap.packages]` in `con
 - **Impact**: User must manually configure or script errors out
 - **Workaround**: Script provides message but doesn't help user fix it
 
-### Stow Conflicts
-- **Issue**: If target files already exist, stow will fail
-- **Impact**: Can't install on system with existing configs
-- **Workaround**: User must manually backup/remove conflicting files
+### Existing files on a new machine
+- **Issue**: Mise refuses to link over a file that already exists
+- **Impact**: Install stops (before changing any dotfile) and names the files
+- **Workaround**: Move each file aside (e.g. `mv ~/.gitconfig ~/.gitconfig.bak`) and run `dotfiles-install` again
 
 ### Fish Shell Change
 - **Issue**: chsh may not work in all environments (containers, etc.)
@@ -705,14 +700,9 @@ System packages and macOS apps are declared under `[bootstrap.packages]` in `con
 ### Review backlog (2026-10-03)
 Found in a project review and deliberately deferred. Pick these up individually.
 
-- **Desktop trait depends on the session**: `get_current_traits` marks a host as `desktop` only when not in an SSH session, so running `dotfiles-install` over SSH on a desktop skips `git-1password`. Derive it from the host instead (e.g. presence of `/Applications/1Password.app` or `/opt/1Password`)
 - **Daily update check blocks the prompt**: `dotfiles-updates-notify` runs `git fetch` synchronously on interactive shell start. When offline the fetch fails, the cache date isn't written, and every new shell blocks on the fetch again. Write the date regardless, or run the check in the background
 - **Shell startup spawns bash helpers**: `config.fish` calls `dotfiles-is-macos`, `dotfiles-has-command`, etc., each a separate bash process. Fish builtins (`test (uname) = Darwin`, `type -q`) avoid that
-- **`"linux"` in a platforms array matches on macOS**: the array check is `. == $platform or . == "linux"` without excluding macOS. Latent (nothing uses it yet). The same matching logic is copied four times (packages and configs in `dotfiles-lib.sh`, twice in `dotfiles-validate`); extract one shared jq function
 - **`dotfiles-check-updates` edge cases**: reports "updates available (0 commits behind)" when local is ahead of the remote; compare the behind count instead. With no upstream, `git rev-parse @{u}` fails under `set -e` before the friendly error prints
-- **`dotfiles-validate` error counting**: `((errors++))` returns non-zero when `errors` is 0, which exits under `set -e` on bash 4.1+ (macOS bash 3.2 tolerates it). Use `errors=$((errors + 1))`
-- **Linux package installs are slow and interactive**: Arch runs `sudo pacman -Syu "$pkg"` per package (a full interactive system upgrade each time); Ubuntu runs `apt update` per package. Batch into one install call with `--noconfirm` / `-y`
-- **README drift**: README says the installer installs starship, mise, eza, lazygit and lazydocker; those come from mise (`configs/mise`), and mise itself must be installed separately (fish warns if it is missing)
 
 ## Dependencies & Prerequisites
 
@@ -724,7 +714,7 @@ Found in a project review and deliberately deferred. Pick these up individually.
 - **sudo access** (Linux only) - For installing packages and creating symlinks in /usr/local
 
 ### Installer Provides
-- git, stow, fish, starship, mise, eza, lazygit, lazydocker
+- System packages from `[bootstrap.packages]` (git, curl, stow, fish, font; btop and Firefox on macOS) and tools from `[tools]` (starship, eza, lazygit and more), all via mise
 - JetBrains Mono Nerd Font
 - Symlinks for 1Password helpers
 - Dotfiles repository clone
@@ -775,17 +765,17 @@ Found in a project review and deliberately deferred. Pick these up individually.
 - **Don't use sudo with Homebrew** - Homebrew explicitly discourages this
 - **WSL needs special handling** - Always check `dotfiles-is-wsl` for 1Password paths
 - **Git config includes are conditional** - config-wsl only loads on WSL
-- **Stow packages mirror structure** - git/.gitconfig becomes ~/.gitconfig
+- **Config packages mirror structure** - git/.gitconfig becomes ~/.gitconfig
 - **Script paths must be portable** - Use $HOME, not absolute paths
 - **1Password paths differ by OS** - Check all platforms when modifying
 - **Don't add comments to simple helper scripts** - If a 2-line script needs comments, rename it
 - **Don't create inline functions for reusable logic** - Create helper scripts instead
-- **Adding a new file to an existing package no longer needs a migration** - `dotfiles-update` calls `stow_configs_for_host` (`dotfiles-lib.sh`) after migrations, which re-stows every config that belongs on the host via `ensure_dotfiles_config_present` — the same idempotent, conflict-safe call `dotfiles-install` uses. A new file in an already-installed package (new script, new config file) gets linked on the next `dotfiles-update`, backing up any pre-existing unmanaged file first, with no companion migration required. A migration is still needed for a one-off structural fix on existing installs (unfolding an already-folded directory, moving a package to a new location) — anything `ensure_dotfiles_config_present` restowing the package can't fix by itself. A migration must still not call any `dotfiles-*` commands, since the thing it's fixing may be why those commands are missing/broken.
+- **Adding a new file to an existing package doesn't need a migration** - `dotfiles-update` runs `mise bootstrap`, which links any file that isn't linked yet
 - **`declare -A` under `set -u`** - An associative array declared with bare `declare -A arr` (no elements assigned) is treated as unbound by bash's `set -u` when later referenced (e.g. `${#arr[@]}`) — use `declare -A arr=()`. Migrations run under `set -u` via `dotfiles-migrate`, so this breaks the "nothing to do" path on a second run if missed.
 
 ### Suggested Improvements (Future Considerations)
 - Pre-flight validation that 1Password is installed and configured
-- Automatic backup before stowing configs
+- Automatic backup of existing files that block a dotfile link on a new machine
 - Machine-specific config system (.gitconfig.local support)
 - Health check command to verify everything works
 - Better WSL username detection
@@ -802,10 +792,9 @@ Found in a project review and deliberately deferred. Pick these up individually.
 6. Executes dotfiles-install from cloned repository
 7. Installer sources shared library (dotfiles-lib.sh)
 8. Detects OS and distribution using helper scripts (dotfiles-is-macos, dotfiles-is-linux, etc.)
-9. Installs system packages from `[bootstrap.packages]` in the mise config (`install_bootstrap_packages`)
+9. Checks mise, then runs `mise bootstrap` with the repo's copy of the mise config (`apply_mise_bootstrap`): installs packages, links dotfiles, applies macOS preferences, installs tools
 10. Sets up 1Password agent socket and op-ssh-sign symlinks (using `ensure_1password_agent` and `ensure_1password_ssh_sign`)
 11. Switches git remote from HTTPS to SSH (using `ensure_git_remote_ssh`)
-12. Stows scripts from root directory and configs from configs/ directory (using `ensure_dotfiles_config_present`)
 13. Adds fish to /etc/shells and sets as default shell (using `ensure_fish_in_etc_shells` and `ensure_fish_is_default_shell`)
 14. Marks all existing migrations as applied (only on fresh installs)
 15. Displays success messages with status indicators
@@ -817,19 +806,18 @@ Found in a project review and deliberately deferred. Pick these up individually.
 3. Script runs git pull in ~/dotfiles (via SSH after initial setup), then restarts itself so the steps below come from the version just pulled
 4. Script checks mise is installed and at least `MISE_MIN_VERSION`, stopping before any change if not
 5. Script runs `dotfiles-migrate` to apply any pending migrations
-6. Script re-stows every config for the host (links new files)
-7. Script runs `mise bootstrap --yes` with this machine's `MISE_ENV` modules (tools today; more setup as the migration plan progresses)
-8. **Note**: New system packages still require re-running `dotfiles-install` until phase 2 of the migration plan
+6. Script runs `mise bootstrap --yes` with this machine's `MISE_ENV` modules and the repo's copy of the mise config: packages, dotfile links (including files new since the last update), macOS preferences, tools
 
 ## Health Check Flow
 
 1. User runs `dotfiles-doctor`
 2. Doctor sources shared library (dotfiles-lib.sh)
 3. Runs `check_*` functions to validate:
-   - Packages installed (git, stow, fish, etc.)
+   - mise installed and new enough, and this machine's modules
+   - Packages installed (from `mise bootstrap packages status`)
    - 1Password agent socket and SSH sign helper configured
    - Git remote using SSH
-   - Configs stowed (scripts, fish, git, ssh, etc.)
+   - Dotfiles linked (from `mise dot status`)
    - Fish shell in /etc/shells and set as default
    - All migrations applied
 4. Reports status with ✅ for OK, ❌ for issues

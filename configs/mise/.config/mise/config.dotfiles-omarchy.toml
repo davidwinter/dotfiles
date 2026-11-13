@@ -1,0 +1,8 @@
+# Machine-specific mise config, loaded when dotfiles-mise-env lists this module
+# in MISE_ENV. See docs/mise-migration-plan.md.
+
+# Omarchy: Hyprland and Waybar overrides
+[dotfiles]
+"~/.config/hypr/bindings.conf" = "~/dotfiles/configs/omarchy/.config/hypr/bindings.conf"
+"~/.config/hypr/autostart.conf" = "~/dotfiles/configs/omarchy/.config/hypr/autostart.conf"
+"~/.config/waybar/config.jsonc" = "~/dotfiles/configs/omarchy/.config/waybar/config.jsonc"

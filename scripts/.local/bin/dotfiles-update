@@ -46,19 +46,16 @@ else
     exit 1
 fi
 
-echo "📃 Re-syncing dotfile configs..."
+echo "🧰 Applying mise config (packages, dotfiles, preferences, tools)..."
 echo
 
-# Idempotent: links any new file a package picked up since this host last
-# updated, so a config package never needs its own migration just to deliver
-# a new file to existing installs.
-stow_configs_for_host || echo "   ⚠️  One or more configs failed to stow" >&2
-
-echo
-echo "🧰 Applying mise config..."
-echo
-
-apply_mise_bootstrap
+# Links any file added to the repo since this machine last updated, so a new
+# config file never needs its own migration.
+if ! apply_mise_bootstrap; then
+    echo
+    echo "⚠️  Dotfiles pulled and migrated, but mise bootstrap didn't finish" >&2
+    exit 1
+fi
 
 echo
 echo "✅ Dotfiles updated successfully"

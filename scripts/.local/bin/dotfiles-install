@@ -42,15 +42,13 @@ check_mise_ready || exit 1
 echo "   ✅ mise $(get_mise_version)"
 
 echo
-echo "📦 Packages:"
+echo "🧰 Applying mise config (packages, dotfiles, preferences, tools):"
 echo
 
-# From [bootstrap.packages] in the mise config, so stow and fish are in place
-# before the steps below need them.
-if install_bootstrap_packages; then
-    echo "   ✅ Packages installed"
-else
-    echo "   ❌ Failed to install packages - fix the error above, then run dotfiles-install again" >&2
+# Uses the repo's copy of the mise config, so it works before anything is
+# linked; it installs packages first, then links the dotfiles.
+if ! apply_mise_bootstrap; then
+    echo "   Then run dotfiles-install again" >&2
     exit 1
 fi
 
@@ -76,18 +74,6 @@ echo
 if ensure_git_remote_ssh; then
     echo "   ✅ Git remote configured for SSH"
 fi
-
-echo
-echo "📃 Dotfile configs:"
-echo
-
-stow_configs_for_host || echo "   ⚠️  One or more configs failed to stow" >&2
-
-echo
-echo "🧰 Applying mise config:"
-echo
-
-apply_mise_bootstrap
 
 echo
 echo "🐟 Fish shell:"

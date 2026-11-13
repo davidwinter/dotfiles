@@ -6,6 +6,60 @@
 dotfiles.root = "~/dotfiles/configs"
 dotfiles.relative_symlinks = true
 
+# Dotfiles: each group links one package directory into ~ with one symlink per
+# file (symlink-each), keeping directories real so files apps create there
+# (known_hosts, fish_variables, ...) stay out of the repo. Groups that only
+# apply to some machines are file entries in the config.dotfiles-*.toml
+# modules instead, because a module's group list would replace this one.
+[bootstrap]
+dotfile_groups = ["git", "ssh", "fish", "starship", "hushlogin", "nano", "vim", "mise", "claude", "zed", "scripts"]
+
+[dotfile_groups.git]
+root = "git"
+mode = "symlink-each"
+
+[dotfile_groups.ssh]
+root = "ssh"
+mode = "symlink-each"
+exclude = [".gitignore"]
+
+[dotfile_groups.fish]
+root = "fish"
+mode = "symlink-each"
+exclude = [".gitignore"]
+
+[dotfile_groups.starship]
+root = "starship"
+mode = "symlink-each"
+
+[dotfile_groups.hushlogin]
+root = "hushlogin"
+mode = "symlink-each"
+
+[dotfile_groups.nano]
+root = "nano"
+mode = "symlink-each"
+
+[dotfile_groups.vim]
+root = "vim"
+mode = "symlink-each"
+
+[dotfile_groups.mise]
+root = "mise"
+mode = "symlink-each"
+
+[dotfile_groups.claude]
+root = "claude"
+mode = "symlink-each"
+
+[dotfile_groups.zed]
+root = "zed"
+mode = "symlink-each"
+
+[dotfile_groups.scripts]
+root = "../scripts" # the dotfiles-* helpers, outside configs/
+mode = "symlink-each"
+
 [tools]
 "github:aristocratos/btop" = {version = "latest", os = "linux"}
 starship = "latest"
@@ -22,19 +76,18 @@ herdr = "latest"
 
 # System packages and apps, installed by mise bootstrap with each platform's
 # package manager; entries for a manager that isn't installed are skipped.
-# "latest" means "installed"; mise doesn't upgrade them. On macOS, git, curl
-# and jq come with the system. Homebrew casks download the vendor's own
+# "latest" means "installed"; mise doesn't upgrade them. On macOS, git and
+# curl come with the system. Homebrew casks download the vendor's own
 # installer (check with `brew info --cask <name>`).
 [bootstrap.packages]
-# Needed by the dotfiles scripts (stow and jq until migration phase 6)
+# Needed by the dotfiles scripts (stow only for old migrations, until
+# migration phase 6)
 "pacman:git" = "latest"
 "pacman:stow" = "latest"
 "pacman:curl" = "latest"
-"pacman:jq" = "latest"
 "apt:git" = "latest"
 "apt:stow" = "latest"
 "apt:curl" = "latest"
-"apt:jq" = "latest"
 "brew:stow" = { os = "macos" }
 
 # Shell and font
