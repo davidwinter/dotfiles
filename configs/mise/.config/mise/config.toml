@@ -1,4 +1,4 @@
-# Machine setup is moving to mise bootstrap: see docs/mise-migration-plan.md.
+# Machine setup for these dotfiles, applied by mise bootstrap (see AI.md).
 # Machine-specific config lives in config.dotfiles-<module>.toml files next to
 # this one, selected by MISE_ENV (set from dotfiles-mise-env).
 
@@ -85,8 +85,8 @@ herdr = "latest"
 # curl come with the system. Homebrew casks download the vendor's own
 # installer (check with `brew info --cask <name>`).
 [bootstrap.packages]
-# Needed by the dotfiles scripts (stow only for old migrations, until
-# migration phase 6)
+# Needed by the dotfiles scripts (stow only for old migrations; see
+# "Pending cleanup" in AI.md)
 "pacman:git" = "latest"
 "pacman:stow" = "latest"
 "pacman:curl" = "latest"

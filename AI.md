@@ -7,7 +7,7 @@
 **Primary technologies**: mise (bootstrap and dotfiles), Bash, Fish shell, 1Password SSH Agent  
 **Repository**: davidwinter/dotfiles
 
-Machine setup is declared in the mise config and applied by `mise bootstrap`. The repo moved there from GNU Stow and hand-written bash in phases; `docs/mise-migration-plan.md` records how, and what's left (a final cleanup once every machine has updated). Read its "Moving machines safely" rules before changing install, update, packages, dotfile linking or the login shell.
+Machine setup is declared in the mise config and applied by `mise bootstrap`. The repo moved there from GNU Stow and hand-written bash in November 2026; a little cleanup remains (see "Pending cleanup"). Follow "Changing setup safely" before changing install, update, packages, dotfile linking or the login shell.
 
 ### Core goals
 1. **One-liner installation** - A new machine is set up with one command
@@ -90,7 +90,6 @@ dotfiles/
 │   │   └── dotfiles-is-*, dotfiles-has-*, dotfiles-detect-linux-distro
 │   └── lib/dotfiles-lib.sh   # Shared functions
 ├── migrations/               # One-off fixes for existing machines
-├── docs/mise-migration-plan.md
 ├── AI.md
 └── README.md
 ```
@@ -113,7 +112,7 @@ dotfiles/
 
 **`dotfiles-check-updates`** / **`dotfiles-updates-notify`** - Once a day on interactive shell start, fetch and report whether updates are available.
 
-**`dotfiles-lib.sh`** - Shared functions for `bootstrap`, `dotfiles-update` and `dotfiles-doctor`: `check_mise_ready`, `dotfiles_mise`, `apply_mise_bootstrap`, and the doctor's `check_*` functions. `stow_configs_for_host` and `install_mise_tools` are stand-ins for update scripts from before the mise migration; remove them once every machine has updated (see the plan).
+**`dotfiles-lib.sh`** - Shared functions for `bootstrap`, `dotfiles-update` and `dotfiles-doctor`: `check_mise_ready`, `dotfiles_mise`, `apply_mise_bootstrap`, and the doctor's `check_*` functions. `stow_configs_for_host` and `install_mise_tools` are stand-ins for update scripts from before the mise migration; remove them once every machine has updated (see "Pending cleanup").
 
 ### Configuration files
 
@@ -179,6 +178,18 @@ if dotfiles-is-wsl; ...; end              # fish
 MISE_ENV="$(dotfiles-mise-env)"           # capture output
 ```
 
+## Changing setup safely
+
+Machines update at different times, and one may not have updated for months. These rules keep every machine working whatever state it starts from.
+
+1. **Every change arrives through `dotfiles-update`.** It pulls, restarts itself from the version just pulled, checks mise, runs migrations, then runs `mise bootstrap`. Migrations run before mise, so they can prepare a machine for the config that follows.
+2. **A machine may be far behind.** It runs every pending migration in order, against the current repo. So migrations must be safe to run more than once, check before they act, and use plain commands. Anything an old migration calls (a helper script, stow) stays until no machine still needs to run it.
+3. **Old update scripts run once.** The first update after a change to `dotfiles-update` still runs the machine's old copy, which sources the new `dotfiles-lib.sh`. Keep any library function an old update script calls (as stand-ins) until every machine has updated.
+4. **New machines start from the current state.** `bootstrap` marks every existing migration applied, so a change must also work for a fresh install.
+5. **An old mise stops the update, not the machine.** `MISE_MIN_VERSION` in `dotfiles-lib.sh` is the oldest supported mise; `dotfiles-update` stops before changing anything if a machine's mise is missing or older. (mise's own `min_version` setting isn't used: its warning appears on every mise command, including every new shell.)
+6. **Try one machine first.** Run `mise bootstrap --dry-run` before updating, start with one machine (usually penny), and revert the commits to roll back.
+7. **Declare removals before writing migrations** (see "Migrations").
+
 ## Migrations
 
 Migrations are one-off scripts that move existing machines from an old state to the current one. New machines never run them: `bootstrap` marks every existing migration applied.
@@ -204,7 +215,7 @@ Like a migration, a removal entry only needs to stay until every machine has upd
 
 **Writing one:**
 1. Make it safe to run more than once, and check before acting
-2. A machine may run it several phases late, against the current repo: don't rely on `dotfiles-*` commands or library functions that may change; use plain commands
+2. A machine may run it months late, against the current repo: don't rely on `dotfiles-*` commands or library functions that may change; use plain commands
 3. Use `$DOTFILES_DIR`, not hardcoded paths
 4. Print what it changed, and keep it to one logical change
 5. Follow the portability rules above
@@ -251,6 +262,14 @@ Change `MISE_MIN_VERSION` in `dotfiles-lib.sh` when the config starts relying on
 - **Omarchy's mise tools**: on every update mise looks up versions for Omarchy's install-on-first-use tools, and a slow site (for example `cursor.com`) delays it by up to 30 seconds. `disable_tools` in `[settings]` would stop that for tools you don't use
 - **Some macOS settings are manual** (default browser, recent items, Finder sidebar, Spotlight related content, Caps Lock per keyboard); the README lists them
 
+### Pending cleanup
+Waiting for sevenofnine (Omarchy), the one machine that hasn't run the mise setup yet. On it: check `mise --version` is 2026.11.6 or newer, run `dotfiles-update` twice (the first run uses its old update script), then `dotfiles-doctor`. Once that's clean:
+- Remove the `stow_configs_for_host` and `install_mise_tools` stand-ins from `dotfiles-lib.sh`
+- Remove `stow` from `[bootstrap.packages]`
+- Remove the `.gitignore` safety nets (root `.gitignore`, `configs/fish/.config/fish/.gitignore`, `configs/ssh/.ssh/.gitignore`) and the matching `exclude` lines in `config.toml`; per-file links mean no app file can land in the repo
+- Remove `dotfiles-is-arch`, `dotfiles-is-ubuntu` and `dotfiles-is-ssh-session` (only old migrations call them), with `absent` entries for their links, and from the README
+- Optionally delete the old migrations, and the `absent` entry for `dotfiles-install`
+
 ### Backlog
 From a project review (2026-10-03). Done: pulling over HTTPS (no 1Password prompt to fetch), the daily check recording the day before it fetches and giving up on a stalled fetch, and `dotfiles-check-updates` comparing behind and ahead counts and handling a branch with no upstream. Considered and declined for now:
 - **Fetching in the background**, so the first shell of the day never waits on `git fetch`. Offline, the check now fails at once and doesn't repeat until the next day, which covers most of the cost.
@@ -268,7 +287,7 @@ From a project review (2026-10-03). Done: pulling over HTTPS (no 1Password promp
 
 1. **Keep every platform working** - macOS, Omarchy/Arch, Ubuntu and WSL
 2. **Preserve the one-liner install**
-3. **Keep install and update idempotent**, and follow the plan's "Moving machines safely" rules: changes arrive through `dotfiles-update` and must work for a machine that hasn't updated for a while
+3. **Keep install and update idempotent**, and follow "Changing setup safely": changes arrive through `dotfiles-update` and must work for a machine that hasn't updated for a while
 4. **Prefer mise config over scripts**, and declared removals over migrations
 5. **Minimal dependencies** - don't add required tools without strong justification
 6. **Update README.md** for user-facing changes and **AI.md** for architecture or convention changes

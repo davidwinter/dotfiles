@@ -110,7 +110,7 @@ check_dotfiles_linked() {
 }
 
 # Old dotfile-update scripts call these after pulling, and the first update
-# that delivers this file still runs the old script once. Remove in phase 6.
+# that delivers this file still runs the old script once. Remove them per "Pending cleanup" in AI.md.
 stow_configs_for_host() {
     apply_mise_bootstrap
 }

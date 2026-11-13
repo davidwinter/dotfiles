@@ -2,7 +2,7 @@
 # Print the mise config modules that apply to this machine, comma-separated,
 # for MISE_ENV. Each module is a config.dotfiles-<name>.toml file in
 # ~/.config/mise; naming a module that has no file is harmless, so the
-# platform is always listed. See docs/mise-migration-plan.md.
+# platform is always listed. See "Machine modules" in AI.md.
 
 modules=""
 add() { modules="${modules:+$modules,}dotfiles-$1"; }
