@@ -271,7 +271,23 @@ Waiting for sevenofnine (Omarchy), the one machine that hasn't run the mise setu
 - Remove `dotfiles-is-arch`, `dotfiles-is-ubuntu` and `dotfiles-is-ssh-session` (only old migrations call them), with `absent` entries for their links, and from the README
 - Optionally delete the old migrations, and the `absent` entry for `dotfiles-install`
 
-### Backlog
+### Open items
+Not started; each needs a decision first.
+- **herdr-core (`hc`) on Linux machines**, so the Herdr app on the Mac can connect to herdr sessions on them. It isn't in mise's registry or on GitHub releases; it's published only at `releases.herdr.dev`. Tested on penny (2026-11) with mise's `http:` backend, which installs and upgrades it, though without checking the published checksum, and its source has no release dates for `minimum_release_age`:
+  ```toml
+  [tools."http:herdr-core"]
+  version = "latest"
+  os = ["linux"]
+  version_list_url = "https://releases.herdr.dev/core/latest.json"
+  version_json_path = ".version"
+  url = "https://releases.herdr.dev/core/{{ version }}/herdr-core-linux-{{ arch(x64='x86_64', arm64='aarch64') }}.tar.gz"
+  postinstall = 'ln -sf herdr-core "$MISE_TOOL_INSTALL_PATH/hc"'
+  ```
+  After an upgrade, a running server stays on the old version until `hc update --from "$(mise which herdr-core)"` or a restart; terminals survive either way
+- **GitHub secret scanning and push protection** for this public repo: switched on in the repo's Settings → Security (only the owner can)
+- **An allowed signers file**, so `git log --show-signature` verifies commits locally without passing `gpg.ssh.allowedSignersFile` each time
+- **Run the macOS CI job only when scripts or migrations change**, if GitHub's macOS runner capacity keeps cancelling it
+
 From a project review (2026-10-03). Done: pulling over HTTPS (no 1Password prompt to fetch), the daily check recording the day before it fetches and giving up on a stalled fetch, and `dotfiles-check-updates` comparing behind and ahead counts and handling a branch with no upstream. Considered and declined for now:
 - **Fetching in the background**, so the first shell of the day never waits on `git fetch`. Offline, the check now fails at once and doesn't repeat until the next day, which covers most of the cost.
 - **Fish built-ins instead of the helpers in `config.fish`** (`command -q`, `uname`, a `/proc/version` check, and computing `MISE_ENV` only when unset). It would cut shell startup on penny from about 120ms to about 60ms, at the cost of the macOS and WSL checks living in two places.
