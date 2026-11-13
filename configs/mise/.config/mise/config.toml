@@ -110,6 +110,7 @@ herdr = "latest"
 "brew-cask:transmission" = { os = "macos" }
 "brew-cask:vlc" = { os = "macos" }
 "brew-cask:dropbox" = { os = "macos" }
+"brew-cask:claude" = { os = "macos" } # desktop app (Claude Code comes from [tools])
 
 # Mac App Store apps, by App Store ID. Needs the mas tool and you signed in to
 # the App Store. WireGuard's Mac app is only on the App Store (WireGuard LLC).
