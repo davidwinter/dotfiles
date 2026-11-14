@@ -1,74 +1,89 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DOTFILES_REPO="${1:-davidwinter/dotfiles}"
-DOTFILES_DIR="$HOME/dotfiles"
+main() {
+    DOTFILES_REPO="${1:-davidwinter/dotfiles}"
+    DOTFILES_DIR="$HOME/dotfiles"
 
-echo "🎯 Dotfiles Bootstrap"
-echo "   Repository: $DOTFILES_REPO"
-echo "   Target: $DOTFILES_DIR"
-echo
+    echo "🎯 Dotfiles Bootstrap"
+    echo "   Repository: $DOTFILES_REPO"
+    echo "   Target: $DOTFILES_DIR"
+    echo
 
-if ! command -v git >/dev/null 2>&1; then
-    echo "❌ git not found. Please install git first." >&2
-    echo "   macOS: xcode-select --install" >&2
-    echo "   Ubuntu/Debian: sudo apt install git" >&2
-    echo "   Arch: sudo pacman -S git" >&2
-    exit 1
-fi
-
-if [[ -d "$DOTFILES_DIR" ]]; then
-    echo "✅ Dotfiles repository already exists at $DOTFILES_DIR"
-else
-    echo "📦 Cloning dotfiles repository..."
-    if ! git clone "https://github.com/$DOTFILES_REPO.git" "$DOTFILES_DIR"; then
-        echo "❌ Failed to clone repository" >&2
+    if ! command -v git >/dev/null 2>&1; then
+        echo "❌ git not found. Please install git first." >&2
+        echo "   macOS: xcode-select --install" >&2
+        echo "   Ubuntu/Debian: sudo apt install git" >&2
+        echo "   Arch: sudo pacman -S git" >&2
         exit 1
     fi
-    echo "✅ Repository cloned successfully"
-fi
 
-export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
-source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
+    if [[ -d "$DOTFILES_DIR" ]]; then
+        echo "✅ Dotfiles repository already exists at $DOTFILES_DIR"
+    else
+        echo "📦 Cloning dotfiles repository..."
+        if ! git clone "https://github.com/$DOTFILES_REPO.git" "$DOTFILES_DIR"; then
+            echo "❌ Failed to clone repository" >&2
+            exit 1
+        fi
+        echo "✅ Repository cloned successfully"
+    fi
 
-echo
-echo "🧰 mise:"
-echo
+    export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
+    source "$DOTFILES_DIR/scripts/.local/lib/dotfiles-lib.sh"
 
-# Check before changing anything: mise applies the whole setup.
-check_mise_ready || exit 1
-echo "   ✅ mise $(get_mise_version)"
+    echo
+    echo "🧰 mise:"
+    echo
 
-echo
-echo "📋 Migrations:"
-echo
+    # Check before changing anything: mise applies the whole setup.
+    check_mise_ready || exit 1
+    echo "   ✅ mise $(get_mise_version)"
 
-# A new machine starts from the current config, so it never needs the
-# migrations that moved older machines here. Mark them applied before mise
-# runs, so a later dotfiles-update doesn't run them even if this install
-# stops partway. An existing install (state directory present) is left alone.
-state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/migrations"
-if [[ -d "$state_dir" ]]; then
-    echo "   ℹ️  Existing installation: leaving migration state alone"
+    echo
+    echo "📋 Migrations:"
+    echo
+
+    # A new machine starts from the current config, so it never needs the
+    # migrations that moved older machines here. Mark them applied before mise
+    # runs, so a later dotfiles-update doesn't run them even if this install
+    # stops partway. An existing install (state directory present) is left alone.
+    local state_dir migration
+    state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/migrations"
+    if [[ -d "$state_dir" ]]; then
+        echo "   ℹ️  Existing installation: leaving migration state alone"
+    else
+        mkdir -p "$state_dir"
+        for migration in "$DOTFILES_DIR/migrations"/*.sh; do
+            [[ -f "$migration" ]] && touch "$state_dir/$(basename "$migration")"
+        done
+        echo "   ✅ Marked existing migrations as applied"
+    fi
+
+    echo
+    echo "🧰 Applying mise config (packages, dotfiles, preferences, tools):"
+    echo
+
+    # Uses the repo's copy of the mise config, so it works before anything is
+    # linked. It installs packages, links the dotfiles, applies macOS
+    # preferences, sets the login shell and installs tools.
+    if ! apply_mise_bootstrap; then
+        echo "   Then run this install command again" >&2
+        exit 1
+    fi
+
+    echo
+    echo "✅ Dotfiles installed. Open a new terminal, then run dotfiles-doctor to check."
+}
+
+# Everything runs from main, called last, so bash reads the whole script
+# before running any of it (a half-downloaded script runs nothing). With
+# `curl | bash` the script arrives on stdin, so a prompt that reads stdin, like
+# chsh (via mise) asking for a password, would read the script instead: it
+# fails at once and the password you type is shown on screen. So give main the
+# terminal as stdin when there is one (not in CI, say).
+if [[ ! -t 0 ]] && { : </dev/tty; } 2>/dev/null; then
+    main "$@" </dev/tty
 else
-    mkdir -p "$state_dir"
-    for migration in "$DOTFILES_DIR/migrations"/*.sh; do
-        [[ -f "$migration" ]] && touch "$state_dir/$(basename "$migration")"
-    done
-    echo "   ✅ Marked existing migrations as applied"
+    main "$@"
 fi
-
-echo
-echo "🧰 Applying mise config (packages, dotfiles, preferences, tools):"
-echo
-
-# Uses the repo's copy of the mise config, so it works before anything is
-# linked. It installs packages, links the dotfiles, applies macOS
-# preferences, sets the login shell and installs tools.
-if ! apply_mise_bootstrap; then
-    echo "   Then run this install command again" >&2
-    exit 1
-fi
-
-echo
-echo "✅ Dotfiles installed. Open a new terminal, then run dotfiles-doctor to check."
