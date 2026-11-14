@@ -117,6 +117,9 @@ herdr = "latest"
 "brew-cask:vlc" = { os = "macos" }
 "brew-cask:dropbox" = { os = "macos" }
 "brew-cask:claude" = { os = "macos" } # desktop app (Claude Code comes from [tools])
+"brew-cask:tailscale-app" = { os = "macos" }
+"brew-cask:localsend" = { os = "macos" }
+"brew-cask:alfred" = { os = "macos" }
 
 # Mac App Store apps, by App Store ID. Needs the mas tool and you signed in to
 # the App Store. WireGuard's Mac app is only on the App Store (WireGuard LLC).

@@ -6,3 +6,6 @@
 # shared entry) for an environment that's never active.
 [bootstrap.packages]
 "mas:1451685025" = { env = "dotfiles-skip" } # WireGuard: Spotlight is off here, so mas can't list apps
+"brew-cask:tailscale-app" = { env = "dotfiles-skip" } # installed here from the App Store
+"brew-cask:localsend" = { env = "dotfiles-skip" } # installed here from the App Store
+"brew-cask:alfred" = { env = "dotfiles-skip" } # not needed on the server
