@@ -46,7 +46,13 @@ On a fresh Omarchy install, move Omarchy's own `~/.config/hypr/bindings.lua`, `a
 
 The dotfiles also set the Omarchy bar's clock (`yyyy-MM-dd HH:mm:ss`) from `configs/omarchy/.config/omarchy/shell-clock.json`. mise writes just the clock into `~/.config/omarchy/shell.json`, so change it in the dotfiles: a clock change made in the bar's own settings is undone by the next `dotfiles-update`. The rest of the bar is set per machine, in its settings.
 
-The keyboard layout is also set per machine, with Omarchy's layout picker (`omarchy-setup-keyboard`), which sets it for both Hyprland and the Fcitx5 input method. On the M1 MacBook, pick English (UK, Macintosh).
+The keyboard layout is also set per machine, with Omarchy's layout picker (`omarchy-setup-keyboard`), which sets it for both Hyprland and the Fcitx5 input method. The picker doesn't list the UK Mac layout, so on the M1 MacBook run its save step directly:
+
+```bash
+OMARCHY_PATH=/usr/share/omarchy python3 /usr/share/omarchy/default/input-methods/typing_setup.py apply keyboard '{"catalog":{"gb:mac":"English (UK, Macintosh)"}}' '["English (UK, Macintosh)"]'
+```
+
+`hyprctl getoption input:kb_variant` then shows `mac`, and `fcitx5-remote -n` shows `keyboard-gb-mac`. This calls an internal Omarchy script, so a later Omarchy release may change it. To go back, pick English (UK) in the picker.
 
 ### Ubuntu
 
