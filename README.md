@@ -157,7 +157,7 @@ These helper scripts are available in your PATH after installation and are used 
 Everything is configured in the mise config, `configs/mise/.config/mise/` (AI.md has the details):
 
 - **`config.toml`** applies to every machine: tools, system packages and apps (`[bootstrap.packages]`), dotfile groups, and macOS preferences. Limit an entry to one OS with `os = "macos"` or `os = "linux"`, or to one package manager with its prefix (`pacman:`, `apt:`, `brew:`, `brew-cask:`); mise skips entries for a package manager that isn't installed.
-- **`config.dotfiles-<module>.toml`** files hold config for some machines only. Each machine works out its own modules (`dotfiles-mise-env`), for example `dotfiles-macos`, `dotfiles-arch`, `dotfiles-omarchy`, `dotfiles-wsl` and `dotfiles-1password`.
+- **`config.dotfiles-<module>.toml`** files hold config for some machines only. Each machine works out its own modules (`dotfiles-mise-env`), for example `dotfiles-macos`, `dotfiles-arch`, `dotfiles-omarchy`, `dotfiles-wsl` and `dotfiles-1password`, plus `dotfiles-host-<hostname>` for that one machine's own settings (such as packages it skips).
 
 ### Adding a system package
 

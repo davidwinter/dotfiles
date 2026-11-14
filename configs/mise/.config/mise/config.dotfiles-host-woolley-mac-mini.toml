@@ -1,0 +1,8 @@
+# The Mac mini home server. Loaded on the machine whose hostname is
+# woolley-mac-mini (dotfiles-mise-env); see "Machine modules" in AI.md.
+
+# Packages from the shared config this machine skips. mise can't negate an
+# env filter, so each entry is re-declared here (same key, which replaces the
+# shared entry) for an environment that's never active.
+[bootstrap.packages]
+"mas:1451685025" = { env = "dotfiles-skip" } # WireGuard: Spotlight is off here, so mas can't list apps

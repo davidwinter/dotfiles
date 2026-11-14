@@ -2,7 +2,7 @@
 # Print the mise config modules that apply to this machine, comma-separated,
 # for MISE_ENV. Each module is a config.dotfiles-<name>.toml file in
 # ~/.config/mise; naming a module that has no file is harmless, so the
-# platform is always listed. See "Machine modules" in AI.md.
+# platform and host are always listed. See "Machine modules" in AI.md.
 
 modules=""
 add() { modules="${modules:+$modules,}dotfiles-$1"; }
@@ -17,5 +17,10 @@ elif dotfiles-is-linux; then
 fi
 
 dotfiles-has-1password && add 1password
+
+# One machine's own settings, from its hostname without any domain, lowercase,
+# e.g. dotfiles-host-penny. Last, so it can override the modules above.
+host="$(uname -n | cut -d. -f1 | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-\n' '-')"
+[[ -n "$host" ]] && add "host-$host"
 
 echo "$modules"

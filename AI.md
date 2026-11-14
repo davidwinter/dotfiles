@@ -135,12 +135,15 @@ dotfiles/
 | `dotfiles-omarchy` | Omarchy (`dotfiles-is-omarchy`) | Hyprland `bindings.lua`, `autostart.lua` and `input.lua` (natural trackpad scrolling); the bar clock (`shell-clock.json`, merged into `shell.json`) |
 | `dotfiles-wsl` | WSL (`dotfiles-is-wsl`) | `config-wsl` |
 | `dotfiles-1password` | The 1Password app is installed (`dotfiles-has-1password`), however you're connected | `config-1password`, `git-ssh-sign`, the `op-ssh-sign` link, the macOS agent socket link |
+| `dotfiles-host-<hostname>` | Always, for this machine (hostname without domain, lowercase) | One machine's overrides, e.g. packages it skips (`config.dotfiles-host-woolley-mac-mini.toml`) |
 
 Naming a module with no file is harmless. Prefer an `os` key or a package-manager prefix in the shared config; use a module only when nothing there can express the condition. Within a module, `variants = [{ os = "macos" }]` limits an entry to one OS (variants can change an entry's target but not its source, so use one named entry per OS when the source differs).
 
 ### Adding a module
 1. Make `dotfiles-mise-env` print it when the machine qualifies, using a `dotfiles-is-*` or `dotfiles-has-*` helper.
 2. Create `config.dotfiles-<name>.toml`. It's linked into `~/.config/mise`, so mise trusts it automatically.
+
+For one machine, no step 1 is needed: create `config.dotfiles-host-<hostname>.toml` (`dotfiles-mise-env` on that machine prints the name). mise can't negate an `env` filter, so to skip a shared package there, re-declare it with the same key as `{ env = "dotfiles-skip" }`: the more local entry replaces the shared one, and no machine has that environment.
 
 ## Platform notes
 

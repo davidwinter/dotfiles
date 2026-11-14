@@ -44,6 +44,7 @@ jobs:
           PATH="$RUNNER_TEMP/omarchy:$PATH" dotfiles-is-omarchy
           echo "modules: $(dotfiles-mise-env)"
           [[ "$(dotfiles-mise-env)" == dotfiles-ubuntu* ]]
+          [[ "$(dotfiles-mise-env)" == *,dotfiles-host-* ]]
 
   macos-bash:
     # macOS ships bash 3.2, and dotfiles-update runs these scripts there.
@@ -77,6 +78,7 @@ jobs:
           dotfiles-has-command git
           echo "modules: $(dotfiles-mise-env)"
           [[ "$(dotfiles-mise-env)" == dotfiles-macos* ]]
+          [[ "$(dotfiles-mise-env)" == *,dotfiles-host-* ]]
 
       - name: library
         run: |
