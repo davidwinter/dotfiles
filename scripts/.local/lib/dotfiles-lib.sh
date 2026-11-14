@@ -99,7 +99,7 @@ check_dotfiles_linked() {
                 if [[ "$(realpath "$HOME/$rel" 2>/dev/null)" != "$(realpath "$file")" ]]; then
                     echo "      not linked: ~/$rel"
                 fi
-            done < <(find "$src" -type f ! -name '.gitignore')
+            done < <(find "$src" -type f)
         else
             config="$(basename "$config" .toml)"
             if [[ "$state" == "applied" ]]; then
@@ -115,15 +115,6 @@ check_dotfiles_linked() {
             NF >= 4 && $2 ~ /^merge:/ { print $1, $2, "-", $3, $NF }' \
         | sort -s -t $'\t' -k2,2r)
     return "$ok"
-}
-
-# Old dotfile-update scripts call these after pulling, and the first update
-# that delivers this file still runs the old script once. Remove them per "Pending cleanup" in AI.md.
-stow_configs_for_host() {
-    apply_mise_bootstrap
-}
-install_mise_tools() {
-    :
 }
 
 # === 1Password and git ===

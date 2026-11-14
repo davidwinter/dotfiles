@@ -38,12 +38,10 @@ mode = "symlink-each"
 [dotfile_groups.ssh]
 root = "ssh"
 mode = "symlink-each"
-exclude = [".gitignore"]
 
 [dotfile_groups.fish]
 root = "fish"
 mode = "symlink-each"
-exclude = [".gitignore"]
 
 [dotfile_groups.starship]
 root = "starship"
@@ -97,15 +95,11 @@ herdr = "latest"
 # curl come with the system. Homebrew casks download the vendor's own
 # installer (check with `brew info --cask <name>`).
 [bootstrap.packages]
-# Needed by the dotfiles scripts (stow only for old migrations; see
-# "Pending cleanup" in AI.md)
+# Needed by the dotfiles scripts
 "pacman:git" = "latest"
-"pacman:stow" = "latest"
 "pacman:curl" = "latest"
 "apt:git" = "latest"
-"apt:stow" = "latest"
 "apt:curl" = "latest"
-"brew:stow" = { os = "macos" }
 
 # Shell and font
 "pacman:fish" = "latest"

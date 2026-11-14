@@ -94,7 +94,7 @@ The first time you push or pull over SSH, ssh asks you to confirm GitHub's host 
 ## What it does
 
 1. Clones the repo to `~/dotfiles` over HTTPS.
-2. Installs system packages and apps through mise, with Homebrew, apt or pacman: GNU Stow, fish, a JetBrains Mono Nerd Font, and on macOS btop and Firefox. The list lives under `[bootstrap.packages]` in `configs/mise/.config/mise/config.toml`.
+2. Installs system packages and apps through mise, with Homebrew, apt or pacman: fish, a JetBrains Mono Nerd Font, and on macOS btop and Firefox. The list lives under `[bootstrap.packages]` in `configs/mise/.config/mise/config.toml`.
 3. Where the 1Password app is installed, links its `op-ssh-sign` helper into `~/.local/bin` for commit signing, and on macOS its SSH agent socket to `~/.1password/agent.sock`.
 4. Sets git to push the dotfiles repo over SSH (`pushInsteadOf` in `.gitconfig`).
 5. Links the config files into your home directory through mise, one symlink per file.
@@ -141,12 +141,9 @@ The dotfiles include helper scripts for common tasks:
 - `dotfiles-is-macos` - Check if running on macOS
 - `dotfiles-is-linux` - Check if running on Linux
 - `dotfiles-is-wsl` - Check if running on WSL
-- `dotfiles-is-ubuntu` - Check if running on Ubuntu
-- `dotfiles-is-arch` - Check if running on Arch Linux
 - `dotfiles-is-omarchy` - Check if running on Omarchy
 - `dotfiles-has-1password` - Check if the 1Password app is installed on this machine
 - `dotfiles-mise-env` - Print the mise config modules for this machine (fish sets `MISE_ENV` from it)
-- `dotfiles-is-ssh-session` - Check if the current shell is an SSH session
 - `dotfiles-has-command` - Check if a command exists
 - `dotfiles-detect-linux-distro` - Output the Linux distribution name
 

@@ -7,7 +7,7 @@
 **Primary technologies**: mise (bootstrap and dotfiles), Bash, Fish shell, 1Password SSH Agent  
 **Repository**: davidwinter/dotfiles
 
-Machine setup is declared in the mise config and applied by `mise bootstrap`. The repo moved there from GNU Stow and hand-written bash in November 2026; a little cleanup remains (see "Pending cleanup"). Follow "Changing setup safely" before changing install, update, packages, dotfile linking or the login shell.
+Machine setup is declared in the mise config and applied by `mise bootstrap`. The repo moved there from GNU Stow and hand-written bash in November 2026, and every machine has since moved over. Follow "Changing setup safely" before changing install, update, packages, dotfile linking or the login shell.
 
 ### Core goals
 1. **One-liner installation** - A new machine is set up with one command
@@ -96,7 +96,7 @@ dotfiles/
 
 ### How config packages are linked
 - Each directory under `configs/` mirrors where its files go: `configs/git/.gitconfig` is linked to `~/.gitconfig`
-- Packages for every machine are dotfile groups in `config.toml`, each with `root` and `mode = "symlink-each"`: one relative symlink per file, directories kept real, so files apps create there (`known_hosts`, `fish_variables`, agent sockets) stay out of the repo. `.gitignore` files are excluded in `fish` and `ssh`
+- Packages for every machine are dotfile groups in `config.toml`, each with `root` and `mode = "symlink-each"`: one relative symlink per file, directories kept real, so files apps create there (`known_hosts`, `fish_variables`, agent sockets) stay out of the repo. That's also why the repo needs no `.gitignore` for app files
 - Packages for some machines are individual `[dotfiles]` file entries in a `config.dotfiles-<module>.toml` module, because a module's `dotfile_groups` list would replace the shared one rather than add to it
 - The `mise` group links mise's own config files, including the modules
 - A new file in the repo is linked on the next `dotfiles-update`
@@ -112,7 +112,7 @@ dotfiles/
 
 **`dotfiles-check-updates`** / **`dotfiles-updates-notify`** - Once a day on interactive shell start, fetch and report whether updates are available.
 
-**`dotfiles-lib.sh`** - Shared functions for `bootstrap`, `dotfiles-update` and `dotfiles-doctor`: `check_mise_ready`, `dotfiles_mise`, `apply_mise_bootstrap`, and the doctor's `check_*` functions. `stow_configs_for_host` and `install_mise_tools` are stand-ins for update scripts from before the mise migration; remove them once every machine has updated (see "Pending cleanup").
+**`dotfiles-lib.sh`** - Shared functions for `bootstrap`, `dotfiles-update` and `dotfiles-doctor`: `check_mise_ready`, `dotfiles_mise`, `apply_mise_bootstrap`, and the doctor's `check_*` functions.
 
 ### Configuration files
 
@@ -186,7 +186,7 @@ MISE_ENV="$(dotfiles-mise-env)"           # capture output
 Machines update at different times, and one may not have updated for months. These rules keep every machine working whatever state it starts from.
 
 1. **Every change arrives through `dotfiles-update`.** It pulls, restarts itself from the version just pulled, checks mise, runs migrations, then runs `mise bootstrap`. Migrations run before mise, so they can prepare a machine for the config that follows.
-2. **A machine may be far behind.** It runs every pending migration in order, against the current repo. So migrations must be safe to run more than once, check before they act, and use plain commands. Anything an old migration calls (a helper script, stow) stays until no machine still needs to run it.
+2. **A machine may be far behind.** It runs every pending migration in order, against the current repo. So migrations must be safe to run more than once, check before they act, and use plain commands. Anything an old migration calls (a helper script) stays until no machine still needs to run it. The stow-era migrations are the exception: every machine has applied them and a fresh install marks them applied, so `stow` and the helpers they used are gone and they can't run again.
 3. **Old update scripts run once.** The first update after a change to `dotfiles-update` still runs the machine's old copy, which sources the new `dotfiles-lib.sh`. Keep any library function an old update script calls (as stand-ins) until every machine has updated.
 4. **New machines start from the current state.** `bootstrap` marks every existing migration applied, so a change must also work for a fresh install.
 5. **An old mise stops the update, not the machine.** `MISE_MIN_VERSION` in `dotfiles-lib.sh` is the oldest supported mise; `dotfiles-update` stops before changing anything if a machine's mise is missing or older. (mise's own `min_version` setting isn't used: its warning appears on every mise command, including every new shell.)
@@ -208,7 +208,7 @@ Migrations are one-off scripts that move existing machines from an old state to 
   [dotfiles]
   "~/.config/old-tool/config" = { mode = "absent" }
   ```
-- Links to files deleted from a dotfile group: `mise bootstrap --prune-dotfiles` (or `mise dot apply --prune`)
+- Links to files deleted from a `symlink-each` group (every group here): nothing to declare. mise removes those stale links itself at the next update, as the dry run for the retired `dotfiles-is-*` helpers showed. For other dotfile entries, `mise bootstrap --prune-dotfiles` (or `mise dot apply --prune`)
 - A LaunchAgent mise created: `mise bootstrap services remove <name>`; deleting its declaration alone leaves it loaded
 - A package: an entry declared absent in `[bootstrap.packages]`
 
@@ -266,14 +266,6 @@ Change `MISE_MIN_VERSION` in `dotfiles-lib.sh` when the config starts relying on
 - **Omarchy's mise tools**: on every update mise looks up versions for Omarchy's install-on-first-use tools, and a slow site (for example `cursor.com`) delays it by up to 30 seconds. `disable_tools` in `[settings]` would stop that for tools you don't use
 - **Some macOS settings are manual** (default browser, recent items, Finder sidebar, Spotlight related content, Caps Lock per keyboard); the README lists them
 
-### Pending cleanup
-Waiting for sevenofnine (Omarchy), the one machine that hasn't run the mise setup yet. On it: check `mise --version` is 2026.11.6 or newer, run `dotfiles-update` twice (the first run uses its old update script), then `dotfiles-doctor`. Once that's clean:
-- Remove the `stow_configs_for_host` and `install_mise_tools` stand-ins from `dotfiles-lib.sh`
-- Remove `stow` from `[bootstrap.packages]`
-- Remove the `.gitignore` safety nets (root `.gitignore`, `configs/fish/.config/fish/.gitignore`, `configs/ssh/.ssh/.gitignore`) and the matching `exclude` lines in `config.toml`; per-file links mean no app file can land in the repo
-- Remove `dotfiles-is-arch`, `dotfiles-is-ubuntu` and `dotfiles-is-ssh-session` (only old migrations call them), with `absent` entries for their links, and from the README
-- Optionally delete the old migrations, and the `absent` entry for `dotfiles-install`
-
 ### Open items
 Not started; each needs a decision first.
 - **herdr-core (`hc`) on Linux machines**, so the Herdr app on the Mac can connect to herdr sessions on them. It isn't in mise's registry or on GitHub releases; it's published only at `releases.herdr.dev`. Tested on penny (2026-11) with mise's `http:` backend, which installs and upgrades it, though without checking the published checksum, and its source has no release dates for `minimum_release_age`:
@@ -290,6 +282,7 @@ Not started; each needs a decision first.
 - **GitHub secret scanning and push protection** for this public repo: switched on in the repo's Settings → Security (only the owner can)
 - **An allowed signers file**, so `git log --show-signature` verifies commits locally without passing `gpg.ssh.allowedSignersFile` each time
 - **Run the macOS CI job only when scripts or migrations change**, if GitHub's macOS runner capacity keeps cancelling it
+- **Delete the stow-era migrations** (they call `stow` and helpers that are gone, so they can't run again) and the `absent` entry for `dotfiles-install`. Every machine has applied them; keeping them costs nothing
 
 From a project review (2026-10-03). Done: pulling over HTTPS (no 1Password prompt to fetch), the daily check recording the day before it fetches and giving up on a stalled fetch, and `dotfiles-check-updates` comparing behind and ahead counts and handling a branch with no upstream. Considered and declined for now:
 - **Fetching in the background**, so the first shell of the day never waits on `git fetch`. Offline, the check now fails at once and doesn't repeat until the next day, which covers most of the cost.
