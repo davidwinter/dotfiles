@@ -6,6 +6,7 @@
 [dotfiles]
 "~/.config/hypr/bindings.lua" = "~/dotfiles/configs/omarchy/.config/hypr/bindings.lua"
 "~/.config/hypr/autostart.lua" = "~/dotfiles/configs/omarchy/.config/hypr/autostart.lua"
+"~/.config/hypr/input.lua" = "~/dotfiles/configs/omarchy/.config/hypr/input.lua"
 
 # Omarchy's bar clock. The bar replaces shell.json whenever it saves, so a
 # link wouldn't last; mise writes just these keys into the real file instead,

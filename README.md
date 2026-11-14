@@ -42,9 +42,11 @@ sudo pacman -S --needed git curl mise
 
 Then install 1Password and set it up as above.
 
-On a fresh Omarchy install, move Omarchy's own `~/.config/hypr/bindings.lua` and `autostart.lua` aside before installing (for example `mv ~/.config/hypr/bindings.lua ~/.config/hypr/bindings.lua.bak`), as the dotfiles replace them. Machines installed earlier get this done by `dotfiles-update`.
+On a fresh Omarchy install, move Omarchy's own `~/.config/hypr/bindings.lua`, `autostart.lua` and `input.lua` aside before installing (for example `mv ~/.config/hypr/bindings.lua ~/.config/hypr/bindings.lua.bak`), as the dotfiles replace them. Machines installed earlier get this done by `dotfiles-update`.
 
 The dotfiles also set the Omarchy bar's clock (`yyyy-MM-dd HH:mm:ss`) from `configs/omarchy/.config/omarchy/shell-clock.json`. mise writes just the clock into `~/.config/omarchy/shell.json`, so change it in the dotfiles: a clock change made in the bar's own settings is undone by the next `dotfiles-update`. The rest of the bar is set per machine, in its settings.
+
+The keyboard layout is also set per machine, with Omarchy's layout picker (`omarchy-setup-keyboard`), which sets it for both Hyprland and the Fcitx5 input method. On the M1 MacBook, pick English (UK, Macintosh).
 
 ### Ubuntu
 
