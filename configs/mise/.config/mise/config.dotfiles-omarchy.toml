@@ -1,8 +1,14 @@
 # Machine-specific mise config, loaded when dotfiles-mise-env lists this module
 # in MISE_ENV. See "Machine modules" in AI.md.
 
-# Omarchy: Hyprland and Waybar overrides
+# Omarchy: Hyprland overrides. Omarchy 4 loads them from hypr/hyprland.lua,
+# after its own defaults.
 [dotfiles]
-"~/.config/hypr/bindings.conf" = "~/dotfiles/configs/omarchy/.config/hypr/bindings.conf"
-"~/.config/hypr/autostart.conf" = "~/dotfiles/configs/omarchy/.config/hypr/autostart.conf"
-"~/.config/waybar/config.jsonc" = "~/dotfiles/configs/omarchy/.config/waybar/config.jsonc"
+"~/.config/hypr/bindings.lua" = "~/dotfiles/configs/omarchy/.config/hypr/bindings.lua"
+"~/.config/hypr/autostart.lua" = "~/dotfiles/configs/omarchy/.config/hypr/autostart.lua"
+
+# Retired with Omarchy 4: Hyprland no longer reads the .conf files, and the
+# Quickshell bar replaced Waybar. Removes the old links.
+"~/.config/hypr/bindings.conf" = { mode = "absent" }
+"~/.config/hypr/autostart.conf" = { mode = "absent" }
+"~/.config/waybar/config.jsonc" = { mode = "absent" }

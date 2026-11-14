@@ -92,6 +92,6 @@ jobs:
       # are safe to run on a clean runner, under bash 3.2 as on a real Mac.
       - name: recent migrations
         run: |
-          for m in migrations/1794573826.sh migrations/1794575081.sh; do
+          for m in migrations/1794573826.sh migrations/1794575081.sh migrations/1794655017.sh; do
             bash -euo pipefail "$m"
           done

@@ -42,6 +42,14 @@ sudo pacman -S --needed git curl mise
 
 Then install 1Password and set it up as above.
 
+On a fresh Omarchy install, move Omarchy's own `~/.config/hypr/bindings.lua` and `autostart.lua` aside before installing (for example `mv ~/.config/hypr/bindings.lua ~/.config/hypr/bindings.lua.bak`), as the dotfiles replace them. Machines installed earlier get this done by `dotfiles-update`.
+
+On Omarchy, set the bar by hand: its settings, or `~/.config/omarchy/shell.json`. The dotfiles don't link that file, because the bar replaces it whenever it saves a change.
+
+- **Clock:** format `yyyy-MM-dd HH:mm`.
+- **World clock:** London, Dubai, Tokyo, Los Angeles and New York.
+- **Widgets:** add Dropbox and Tailscale on the right.
+
 ### Ubuntu
 
 ```bash
