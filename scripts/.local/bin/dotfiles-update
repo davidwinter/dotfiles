@@ -3,9 +3,9 @@ set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 
-if ! dotfiles-has-command dotfiles-has-command 2>/dev/null; then
-    export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
-fi
+# Always use the repo's own helpers: a helper added since this machine last
+# finished an update isn't linked into ~/.local/bin yet.
+export PATH="$DOTFILES_DIR/scripts/.local/bin:$PATH"
 
 cd "$DOTFILES_DIR"
 

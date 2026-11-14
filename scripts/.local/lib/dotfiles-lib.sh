@@ -48,8 +48,14 @@ check_mise_ready() {
 # install, or when a new module file hasn't been linked yet), and mise's own
 # "mise" dotfile group then links ~/.config/mise to it.
 dotfiles_mise() {
+    # Stop rather than run mise without this machine's modules.
+    local modules
+    if ! modules="$(dotfiles-mise-env)" || [[ -z "$modules" ]]; then
+        echo "   ❌ Couldn't work out this machine's config modules (dotfiles-mise-env)" >&2
+        return 1
+    fi
     MISE_CONFIG_DIR="${DOTFILES_DIR:-$HOME/dotfiles}/configs/mise/.config/mise" \
-        MISE_ENV="$(dotfiles-mise-env)" mise "$@"
+        MISE_ENV="$modules" mise "$@"
 }
 
 # Applies the whole mise config: packages, dotfile links, macOS preferences,
