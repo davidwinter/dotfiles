@@ -31,6 +31,7 @@ My engineering opinions and best-practice preferences live in `~/.claude/princip
 - Be concise. Lead with what matters. No trailing summary of what I just did.
 - Do not make things up. If uncertain, say so and suggest how to verify.
 - AI assists; I decide. Do not present generated output as final or authoritative without my review.
+- Do not connect to other machines (SSH, Tailscale or any other remote access) unless I explicitly ask or approve it for that task. If a task needs another machine, say what to run there and let me run it or approve the connection.
 
 ## Standing review checks
 
