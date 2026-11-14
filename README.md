@@ -54,7 +54,7 @@ OMARCHY_PATH=/usr/share/omarchy python3 /usr/share/omarchy/default/input-methods
 
 `hyprctl getoption input:kb_variant` then shows `mac`, and `fcitx5-remote -n` shows `keyboard-gb-mac`. This calls an internal Omarchy script, so a later Omarchy release may change it. To go back, pick English (UK) in the picker.
 
-On this layout only the right Option key types the extra characters, for example right Option + 3 for `#`. The left Option key stays Alt, so shortcuts that use Alt keep working.
+On this layout only the right Option key types the extra characters, for example right Option + 3 for `#`. The left Option key stays Alt, so shortcuts that use Alt keep working. For a Mac running Omarchy, the dotfiles add a shortcut so left Option (Alt) + 3 types `#`, as it does on macOS. It's a Hyprland binding in `configs/omarchy/.config/hypr/bindings.lua`, added only when the UK Mac layout is selected, and it takes Alt + 3 from apps, such as a browser's go-to-tab-3.
 
 ### Ubuntu
 
