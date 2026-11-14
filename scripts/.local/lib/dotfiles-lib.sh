@@ -77,7 +77,7 @@ check_bootstrap_packages() {
 # file (with its module), and for a group that isn't fully linked, each file
 # that isn't. Returns 1 if anything isn't in place. Columns in mise's verbose
 # status are separated by two or more spaces: target, mode, source, config
-# file, state.
+# file, state. Merge entries (mode merge:<id>) have no source column.
 check_dotfiles_linked() {
     local ok=0 target mode source config state src file rel
     while IFS=$'\t' read -r target mode source config state; do
@@ -104,7 +104,9 @@ check_dotfiles_linked() {
         fi
         [[ "$state" == "applied" ]] || ok=1
     done < <(dotfiles_mise dot status --verbose 2>/dev/null \
-        | awk -F '  +' -v OFS='\t' 'NF >= 5 && $2 ~ /^(symlink|symlink-each|copy|template)$/ { print $1, $2, $3, $4, $NF }' \
+        | awk -F '  +' -v OFS='\t' '
+            NF >= 5 && $2 ~ /^(symlink|symlink-each|copy|template)$/ { print $1, $2, $3, $4, $NF }
+            NF >= 4 && $2 ~ /^merge:/ { print $1, $2, "-", $3, $NF }' \
         | sort -s -t $'\t' -k2,2r)
     return "$ok"
 }
