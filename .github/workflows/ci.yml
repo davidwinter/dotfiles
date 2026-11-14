@@ -36,6 +36,12 @@ jobs:
           export PATH="$PWD/scripts/.local/bin:$PATH"
           dotfiles-is-linux
           if dotfiles-is-macos; then exit 1; fi
+          if dotfiles-is-omarchy; then exit 1; fi
+          # Omarchy on Apple Silicon keeps ID=archarm, so the command counts too.
+          mkdir -p "$RUNNER_TEMP/omarchy"
+          printf '#!/bin/sh\n' > "$RUNNER_TEMP/omarchy/omarchy-version"
+          chmod +x "$RUNNER_TEMP/omarchy/omarchy-version"
+          PATH="$RUNNER_TEMP/omarchy:$PATH" dotfiles-is-omarchy
           echo "modules: $(dotfiles-mise-env)"
           [[ "$(dotfiles-mise-env)" == dotfiles-ubuntu* ]]
 

@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
-# Omarchy reports ID=omarchy (and ID_LIKE=arch) in /etc/os-release.
-[[ -r /etc/os-release ]] && [[ "$(. /etc/os-release && echo "${ID:-}")" == "omarchy" ]]
+# Omarchy on x86 reports ID=omarchy (and ID_LIKE=arch) in /etc/os-release. On
+# Apple Silicon it keeps Arch Linux ARM's (ID=archarm), so also count any
+# machine where Omarchy's own omarchy-version command is installed.
+[[ -r /etc/os-release ]] && [[ "$(. /etc/os-release && echo "${ID:-}")" == "omarchy" ]] && exit 0
+command -v omarchy-version >/dev/null 2>&1
