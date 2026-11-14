@@ -132,7 +132,7 @@ dotfiles/
 |---|---|---|
 | `dotfiles-macos` | macOS (`dotfiles-is-macos`) | Ghostty config |
 | `dotfiles-<distro>`, e.g. `dotfiles-arch`, `dotfiles-ubuntu` | Linux (`dotfiles-detect-linux-distro`; derivatives map via `ID_LIKE`) | Nothing yet |
-| `dotfiles-omarchy` | Omarchy (`dotfiles-is-omarchy`) | Hyprland `bindings.lua` and `autostart.lua`; the bar layout (`shell-bar.json`, merged into `shell.json`) |
+| `dotfiles-omarchy` | Omarchy (`dotfiles-is-omarchy`) | Hyprland `bindings.lua` and `autostart.lua`; the bar clock (`shell-clock.json`, merged into `shell.json`) |
 | `dotfiles-wsl` | WSL (`dotfiles-is-wsl`) | `config-wsl` |
 | `dotfiles-1password` | The 1Password app is installed (`dotfiles-has-1password`), however you're connected | `config-1password`, `git-ssh-sign`, the `op-ssh-sign` link, the macOS agent socket link |
 

@@ -7,13 +7,18 @@
 "~/.config/hypr/bindings.lua" = "~/dotfiles/configs/omarchy/.config/hypr/bindings.lua"
 "~/.config/hypr/autostart.lua" = "~/dotfiles/configs/omarchy/.config/hypr/autostart.lua"
 
-# Omarchy's bar: the clock, world clock and widgets (bar.layout). The bar
-# replaces shell.json whenever it saves, so a link wouldn't last; mise writes
-# just these keys into the real file instead, and the bar picks them up
-# straight away. A change made in the bar's settings is undone by the next
-# update, so make it in this file. version is there for a machine without
-# shell.json yet, which mise creates from these keys alone.
-"~/.config/omarchy/shell.json/bar" = { source = "~/dotfiles/configs/omarchy/.config/omarchy/shell-bar.json", merge = true }
+# Omarchy's bar clock. The bar replaces shell.json whenever it saves, so a
+# link wouldn't last; mise writes just these keys into the real file instead,
+# and the bar picks them up straight away. mise replaces a list whole, so this
+# owns the bar's centre section, which holds only the clock; the rest of the
+# bar stays each machine's own. A clock change made in the bar's settings is
+# undone by the next update, so make it in the source file.
+#
+# The bar doesn't fill gaps from its defaults: a shell.json holding only these
+# keys would show a bar with just the clock. Omarchy gives every user a full
+# shell.json (from /etc/skel), so mise only ever edits one; if it's missing,
+# copy /etc/skel/.config/omarchy/shell.json to ~/.config/omarchy/ first.
+"~/.config/omarchy/shell.json/bar-clock" = { source = "~/dotfiles/configs/omarchy/.config/omarchy/shell-clock.json", merge = true }
 
 # Retired with Omarchy 4: Hyprland no longer reads the .conf files, and the
 # Quickshell bar replaced Waybar. Removes the old links.
