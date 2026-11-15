@@ -144,6 +144,7 @@ apps = ["/System/Applications/System Settings.app"] # Finder is always there
 
 [bootstrap.macos.finder]
 preferred_view_style = "column"
+show_status_bar = true # item count and free space at the bottom of windows
 
 # Hot corners (mise's Dock section has no keys for them). Actions: 10 = put
 # display to sleep, 13 = lock screen; modifier 0 = no key held.
