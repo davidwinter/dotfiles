@@ -2,8 +2,9 @@
 
 o.launch_on_start("1password --silent")
 
--- Older Omarchy sometimes started on another workspace. Uncomment if it does
--- again.
--- hl.on("hyprland.start", function()
---   hl.dispatch(hl.dsp.focus({ workspace = "1" }))
--- end)
+-- Start on workspace 1. With two monitors Hyprland can start focused on the
+-- second one. Each monitor has its own block of workspaces (1-10, 11-20, ...),
+-- so this focuses the monitor that owns the first block, and its workspace 1.
+hl.on("hyprland.start", function()
+  hl.dispatch(hl.dsp.focus({ workspace = "1" }))
+end)
