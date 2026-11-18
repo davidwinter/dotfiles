@@ -120,6 +120,7 @@ herdr = "latest"
 "brew-cask:tailscale-app" = { os = "macos" }
 "brew-cask:localsend" = { os = "macos" }
 "brew-cask:alfred" = { os = "macos" }
+"brew-cask:daisydisk" = { os = "macos" }
 
 # Mac App Store apps, by App Store ID. Needs the mas tool and you signed in to
 # the App Store. WireGuard's Mac app is only on the App Store (WireGuard LLC).
